@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+backend/.venv/
+__pycache__/
+*.pyc
+
+# Environment / Secrets
+.env
+backend/.env
+
+# Build artifacts
+frontend/dist/
+frontend/build/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# SonarQube
+sonar-project.properties
+.scannerwork/
+
+# Docker
+*.log
+
+# Claude
+.claude/

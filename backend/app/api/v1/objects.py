@@ -1,0 +1,136 @@
+from fnmatch import fnmatch
+from typing import Annotated
+from fastapi import APIRouter, Depends, File, HTTPException, Path, Request, UploadFile, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_current_user, get_db
+from app.models.settings import AppSetting
+from app.models.user import User
+from app.schemas.s3 import CopyMoveRequest, DeleteRequest, DeleteResult
+from app.services import s3 as s3_service
+from app.services.audit import log_audit, UPLOAD, DELETE, COPY, MOVE
+
+router = APIRouter(prefix="/buckets", tags=["objects"])
+
+
+def _check_perm(user: User, bucket_name: str, action: str) -> None:
+    if user.is_admin:
+        return
+    action_map = {"write": "can_write", "delete": "can_delete", "read": "can_read"}
+    attr = action_map[action]
+    for group in user.groups:
+        for perm in group.permissions:
+            if fnmatch(bucket_name, perm.bucket_pattern) and getattr(perm, attr):
+                return
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail=f"No '{action}' permission for bucket '{bucket_name}'",
+    )
+
+
+async def _check_quota(db: AsyncSession, bucket_name: str, upload_size: int) -> None:
+    """Check both global and bucket quotas before upload."""
+    # Check global quota
+    result = await db.execute(select(AppSetting).where(AppSetting.key == "storage_quota_gb"))
+    row = result.scalar_one_or_none()
+    if row and float(row.value) > 0:
+        quota_bytes = int(float(row.value) * 1024 * 1024 * 1024)
+        stats = await s3_service.get_storage_stats()
+        if stats["total_size"] + upload_size > quota_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"Global storage quota exceeded ({row.value} GB limit)",
+            )
+
+    # Check bucket quota
+    result = await db.execute(
+        select(AppSetting).where(AppSetting.key == f"bucket_quota_gb:{bucket_name}")
+    )
+    row = result.scalar_one_or_none()
+    if row and float(row.value) > 0:
+        quota_bytes = int(float(row.value) * 1024 * 1024 * 1024)
+        bucket_stats = await s3_service.get_bucket_size(bucket_name)
+        if bucket_stats["size"] + upload_size > quota_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"Bucket '{bucket_name}' quota exceeded ({row.value} GB limit)",
+            )
+
+
+@router.post("/{bucket_name}/objects", status_code=201)
+async def upload_object(
+    bucket_name: str,
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    file: Annotated[UploadFile, File()],
+    prefix: str = "",
+):
+    _check_perm(current_user, bucket_name, "write")
+    key = f"{prefix}{file.filename}" if prefix else file.filename
+    data = await file.read()
+    await _check_quota(db, bucket_name, len(data))
+    content_type = file.content_type or "application/octet-stream"
+    await s3_service.put_object(bucket=bucket_name, key=key, data=data, content_type=content_type)
+    await log_audit(db, current_user, UPLOAD, bucket=bucket_name, object_key=key,
+                    details={"size": len(data), "content_type": content_type},
+                    ip_address=request.client.host if request.client else None)
+    return {"key": key, "size": len(data)}
+
+
+@router.delete("/{bucket_name}/objects", response_model=DeleteResult)
+async def delete_objects(
+    bucket_name: str,
+    body: DeleteRequest,
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    _check_perm(current_user, bucket_name, "delete")
+    result = await s3_service.delete_objects(bucket=bucket_name, keys=body.keys)
+    for key in body.keys:
+        await log_audit(db, current_user, DELETE, bucket=bucket_name, object_key=key,
+                        ip_address=request.client.host if request.client else None)
+    return DeleteResult(**result)
+
+
+@router.post("/{bucket_name}/objects/copy", responses={403: {"description": "Insufficient permissions"}, 404: {"description": "Source object not found"}})
+async def copy_object(
+    bucket_name: str,
+    body: CopyMoveRequest,
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    _check_perm(current_user, body.source_bucket, "read")
+    _check_perm(current_user, bucket_name, "write")
+    try:
+        await s3_service.copy_object(body.source_bucket, body.source_key, bucket_name, body.dest_key)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    await log_audit(db, current_user, COPY, bucket=bucket_name, object_key=body.dest_key,
+                    details={"source_bucket": body.source_bucket, "source_key": body.source_key},
+                    ip_address=request.client.host if request.client else None)
+    return {"key": body.dest_key}
+
+
+@router.post("/{bucket_name}/objects/move", responses={403: {"description": "Insufficient permissions"}, 404: {"description": "Source object not found"}})
+async def move_object(
+    bucket_name: str,
+    body: CopyMoveRequest,
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    _check_perm(current_user, body.source_bucket, "read")
+    _check_perm(current_user, body.source_bucket, "delete")
+    _check_perm(current_user, bucket_name, "write")
+    try:
+        await s3_service.move_object(body.source_bucket, body.source_key, bucket_name, body.dest_key)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    await log_audit(db, current_user, MOVE, bucket=bucket_name, object_key=body.dest_key,
+                    details={"source_bucket": body.source_bucket, "source_key": body.source_key},
+                    ip_address=request.client.host if request.client else None)
+    return {"key": body.dest_key}

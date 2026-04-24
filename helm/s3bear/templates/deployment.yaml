@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "s3bear.fullname" . }}-backend
+  labels:
+    {{- include "s3bear.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "s3bear.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        {{- include "s3bear.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+    spec:
+      initContainers:
+        - name: migrate
+          image: "{{ .Values.image.backend.repository }}:{{ .Values.image.backend.tag }}"
+          imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
+          command: ["alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "s3bear.fullname" . }}
+            - secretRef:
+                name: {{ include "s3bear.fullname" . }}
+      containers:
+        - name: backend
+          image: "{{ .Values.image.backend.repository }}:{{ .Values.image.backend.tag }}"
+          imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.backendPort }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "s3bear.fullname" . }}
+            - secretRef:
+                name: {{ include "s3bear.fullname" . }}
+          {{- if and .Values.auditLog.enabled .Values.auditLog.fileEnabled }}
+          volumeMounts:
+            - name: audit-logs
+              mountPath: {{ .Values.auditLog.path }}
+          {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.backendPort }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.backendPort }}
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      {{- if and .Values.auditLog.enabled .Values.auditLog.fileEnabled }}
+      volumes:
+        - name: audit-logs
+          {{- if .Values.auditLog.storage.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "s3bear.fullname" . }}-audit-logs
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "s3bear.fullname" . }}-frontend
+  labels:
+    {{- include "s3bear.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "s3bear.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        {{- include "s3bear.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ .Values.image.frontend.repository }}:{{ .Values.image.frontend.tag }}"
+          imagePullPolicy: {{ .Values.image.frontend.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.frontendPort }}
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: {{ include "s3bear.fullname" . }}-nginx

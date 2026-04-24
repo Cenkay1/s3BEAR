@@ -1,0 +1,83 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: s3bear
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
+    volumes:
+      - minio_data_dev:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend-migrate:
+    image: s3bear-backend:1.0.0
+    command: ["alembic", "upgrade", "head"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/s3bear
+      DATABASE_URL_SYNC: postgresql://postgres:postgres@postgres:5432/s3bear
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    image: s3bear-backend:1.0.0
+    restart: unless-stopped
+    ports:
+      - "8200:8000"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/s3bear
+      DATABASE_URL_SYNC: postgresql://postgres:postgres@postgres:5432/s3bear
+      AWS_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      PRESIGNED_URL_BASE: http://localhost:9000
+      DEBUG: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      backend-migrate:
+        condition: service_completed_successfully
+
+  frontend:
+    image: s3bear-frontend:1.0.0
+    restart: unless-stopped
+    ports:
+      - "3100:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data_dev:
+  minio_data_dev:

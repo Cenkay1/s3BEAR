@@ -1,0 +1,31 @@
+{
+  "name": "s3bear-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext ts,tsx"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2",
+    "@azure/msal-browser": "^3.27.0",
+    "@azure/msal-react": "^2.1.1",
+    "antd": "^5.21.6",
+    "@ant-design/icons": "^5.5.2",
+    "axios": "^1.7.9",
+    "zustand": "^5.0.2",
+    "dayjs": "^1.11.13"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "eslint": "^9.15.0"
+  }
+}

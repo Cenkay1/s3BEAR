@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>s3BEAR</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --void:         #1d2021;
+        --surface:      #282828;
+        --elevated:     #32302f;
+        --overlay:      #3c3836;
+        --border:       #3c3836;
+        --border-sub:   #2a2827;
+        --amber:        #fabd2f;
+        --amber-bright: #ffd561;
+        --amber-glow:   rgba(250,189,47,0.12);
+        --amber-shadow: rgba(250,189,47,0.25);
+        --orange:       #fe8019;
+        --green:        #b8bb26;
+        --aqua:         #8ec07c;
+        --blue:         #83a598;
+        --red:          #fb4934;
+        --text:         #ebdbb2;
+        --text-muted:   #928374;
+        --text-faint:   #504945;
+      }
+
+      *, *::before, *::after { box-sizing: border-box; }
+
+      html, body, #root {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: 'Fira Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--void);
+        color: var(--text);
+      }
+
+      /* Subtle grid background on body */
+      body {
+        background-image:
+          linear-gradient(rgba(250,189,47,0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(250,189,47,0.025) 1px, transparent 1px);
+        background-size: 48px 48px;
+        background-color: var(--void);
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar { width: 5px; height: 5px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: var(--overlay); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--amber); }
+
+      /* Page load fade-in */
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+      }
+      @keyframes glowPulse {
+        0%, 100% { box-shadow: 0 0 12px var(--amber-shadow); }
+        50%       { box-shadow: 0 0 24px var(--amber-shadow), 0 0 48px rgba(250,189,47,0.1); }
+      }
+
+      .animate-fade-up {
+        animation: fadeUp 0.4s ease both;
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.3s ease both;
+      }
+
+      /* Stagger helpers */
+      .stagger-1 { animation-delay: 0.05s; }
+      .stagger-2 { animation-delay: 0.10s; }
+      .stagger-3 { animation-delay: 0.15s; }
+      .stagger-4 { animation-delay: 0.20s; }
+      .stagger-5 { animation-delay: 0.25s; }
+      .stagger-6 { animation-delay: 0.30s; }
+
+      /* Ant Design overrides */
+      .ant-table-wrapper .ant-table {
+        background: transparent !important;
+        font-family: 'Fira Sans', sans-serif;
+      }
+      .ant-table-wrapper .ant-table-thead > tr > th {
+        background: var(--void) !important;
+        color: var(--text-muted) !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.07em !important;
+        text-transform: uppercase !important;
+        border-bottom: 1px solid var(--border) !important;
+      }
+      .ant-table-wrapper .ant-table-tbody > tr > td {
+        border-bottom: 1px solid var(--border-sub) !important;
+      }
+      .ant-table-wrapper .ant-table-tbody > tr:hover > td {
+        background: var(--amber-glow) !important;
+      }
+      .ant-menu-dark { background: transparent !important; }
+      .ant-menu-dark .ant-menu-item-selected {
+        background: var(--amber-glow) !important;
+        border-left: 2px solid var(--amber) !important;
+      }
+      .ant-menu-dark .ant-menu-item-selected a,
+      .ant-menu-dark .ant-menu-item-selected .anticon {
+        color: var(--amber) !important;
+      }
+      .ant-btn-primary {
+        background: var(--amber) !important;
+        border-color: var(--amber) !important;
+        color: var(--void) !important;
+        font-weight: 600 !important;
+      }
+      .ant-btn-primary:hover {
+        background: var(--amber-bright) !important;
+        border-color: var(--amber-bright) !important;
+      }
+      .ant-tabs-ink-bar { background: var(--amber) !important; }
+      .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--amber) !important; }
+      .ant-progress-bg { background: var(--amber) !important; }
+      .ant-statistic-content { color: var(--text) !important; font-family: 'Fira Code', monospace !important; }
+      .ant-statistic-title { color: var(--text-muted) !important; font-size: 11px !important; text-transform: uppercase; letter-spacing: 0.06em; }
+      /* File size / monospace values */
+      .mono { font-family: 'Fira Code', monospace !important; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

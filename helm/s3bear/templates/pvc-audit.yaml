@@ -1,0 +1,17 @@
+{{- if and .Values.auditLog.enabled .Values.auditLog.storage.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "s3bear.fullname" . }}-audit-logs
+  labels:
+    {{- include "s3bear.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.auditLog.storage.accessMode }}
+  {{- if .Values.auditLog.storage.storageClassName }}
+  storageClassName: {{ .Values.auditLog.storage.storageClassName }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.auditLog.storage.size }}
+{{- end }}

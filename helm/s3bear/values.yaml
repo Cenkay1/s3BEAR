@@ -1,0 +1,83 @@
+replicaCount: 1
+
+image:
+  backend:
+    repository: bearcomp/s3bear-backend
+    tag: 1.0.0
+    pullPolicy: IfNotPresent
+  frontend:
+    repository: bearcomp/s3bear-frontend
+    tag: 1.0.0
+    pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  backendPort: 8000
+  frontendPort: 80
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  host: s3bear.example.com
+  tls:
+    enabled: false
+    secretName: s3bear-tls
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 5
+  cpuUtilization: 70
+
+# -- Backend config (non-secret) --
+config:
+  debug: "false"
+  awsRegion: us-east-1
+  awsEndpointUrl: ""
+  allowedOrigins: '["https://s3bear.example.com"]'
+  # Presigned URL / Multipart Upload
+  presignedUrlBase: ""          # External S3 URL that browsers can reach (e.g. https://minio.example.com)
+  multipartPartSizeMb: "10"    # Part size in MB for multipart uploads
+  presignedUrlExpiry: "3600"   # Presigned URL expiry in seconds
+
+# -- Secrets (override in CI or via external secret manager) --
+secrets:
+  secretKey: "change-me-in-production"
+  defaultAdminEmail: "admin@admin.com"
+  defaultAdminPassword: "admin"
+  databaseUrl: "postgresql+asyncpg://postgres:postgres@postgres:5432/s3bear"
+  databaseUrlSync: "postgresql://postgres:postgres@postgres:5432/s3bear"
+  azureTenantId: ""
+  azureClientId: ""
+  azureClientSecret: ""
+  azureRedirectUri: "https://s3bear.example.com/auth/callback"
+  awsAccessKeyId: ""
+  awsSecretAccessKey: ""
+
+# -- Audit Log --
+auditLog:
+  enabled: true
+  fileEnabled: true
+  path: "/var/log/s3bear/audit"
+  retentionDays: 90
+  storage:
+    enabled: true
+    size: 5Gi
+    storageClassName: ""
+    accessMode: ReadWriteOnce
+
+# -- Optional: embedded MinIO (for dev/testing — prefer external S3 in prod) --
+minio:
+  enabled: false
+  auth:
+    rootUser: minioadmin
+    rootPassword: minioadmin
+
+# -- Optional: embedded PostgreSQL (for dev/testing — prefer external DB in prod) --
+postgresql:
+  enabled: false
+  auth:
+    username: postgres
+    password: postgres
+    database: s3bear

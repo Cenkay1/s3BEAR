@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "s3bear.fullname" . }}
+  labels:
+    {{- include "s3bear.labels" . | nindent 4 }}
+data:
+  DEBUG: {{ .Values.config.debug | quote }}
+  AWS_REGION: {{ .Values.config.awsRegion | quote }}
+  AWS_ENDPOINT_URL: {{ .Values.config.awsEndpointUrl | quote }}
+  ALLOWED_ORIGINS: {{ .Values.config.allowedOrigins | quote }}
+  PRESIGNED_URL_BASE: {{ .Values.config.presignedUrlBase | quote }}
+  MULTIPART_PART_SIZE_MB: {{ .Values.config.multipartPartSizeMb | quote }}
+  PRESIGNED_URL_EXPIRY_SECONDS: {{ .Values.config.presignedUrlExpiry | quote }}
+  AUDIT_LOG_ENABLED: {{ .Values.auditLog.enabled | quote }}
+  AUDIT_LOG_FILE_ENABLED: {{ .Values.auditLog.fileEnabled | quote }}
+  AUDIT_LOG_PATH: {{ .Values.auditLog.path | quote }}
+  AUDIT_LOG_RETENTION_DAYS: {{ .Values.auditLog.retentionDays | quote }}

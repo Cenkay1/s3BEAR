@@ -1,0 +1,16 @@
+{{- if .Values.postgresql.enabled }}
+# NOTE: For production use an external managed PostgreSQL.
+# This PVC is only for dev/testing.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "s3bear.fullname" . }}-postgres
+  labels:
+    {{- include "s3bear.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+{{- end }}
