@@ -29,11 +29,12 @@ Default admin: `admin@admin.com` / `admin`
 
 ## Kubernetes Deployment (Helm)
 
-Docker images are available on Docker Hub:
+All artifacts are available on Docker Hub:
 
 ```
-bearcomp/s3bear-backend:1.0.0
-bearcomp/s3bear-frontend:1.0.0
+bearcomp/s3bear-backend:1.0.0    # Backend image
+bearcomp/s3bear-frontend:1.0.0   # Frontend image
+bearcomp/s3bear:1.0.0            # Helm chart (OCI)
 ```
 
 ### Option 1: Full local stack (embedded PostgreSQL + MinIO)
@@ -41,7 +42,7 @@ bearcomp/s3bear-frontend:1.0.0
 For development, testing, or quick demos:
 
 ```bash
-helm install s3bear ./helm/s3bear \
+helm install s3bear oci://registry-1.docker.io/bearcomp/s3bear --version 1.0.0 \
   --namespace s3bear --create-namespace \
   --set postgresql.enabled=true \
   --set minio.enabled=true \
@@ -68,7 +69,7 @@ kubectl port-forward -n s3bear svc/s3bear-backend 8200:8000
 For production or when connecting to existing infrastructure:
 
 ```bash
-helm install s3bear ./helm/s3bear \
+helm install s3bear oci://registry-1.docker.io/bearcomp/s3bear --version 1.0.0 \
   --namespace s3bear --create-namespace \
   --set postgresql.enabled=false \
   --set minio.enabled=false \
@@ -84,7 +85,7 @@ helm install s3bear ./helm/s3bear \
 ### Option 3: Mixed (embedded PostgreSQL + external S3)
 
 ```bash
-helm install s3bear ./helm/s3bear \
+helm install s3bear oci://registry-1.docker.io/bearcomp/s3bear --version 1.0.0 \
   --namespace s3bear --create-namespace \
   --set postgresql.enabled=true \
   --set minio.enabled=false \
@@ -121,7 +122,7 @@ helm install s3bear ./helm/s3bear \
 ### Upgrade
 
 ```bash
-helm upgrade s3bear ./helm/s3bear --namespace s3bear --reuse-values \
+helm upgrade s3bear oci://registry-1.docker.io/bearcomp/s3bear --version 1.1.0 --namespace s3bear --reuse-values \
   --set image.backend.tag=1.1.0 \
   --set image.frontend.tag=1.1.0
 ```
