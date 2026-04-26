@@ -151,7 +151,11 @@ kubectl delete namespace s3bear
 
 ## Overview
 
+# Bucket Panel
+
 <img width="1510" height="861" alt="image" src="https://github.com/user-attachments/assets/4710ebbb-058d-4a8a-982f-1523aeeb7122" />
+
+# Policy Panel
 
 <img width="1512" height="860" alt="image" src="https://github.com/user-attachments/assets/d6c3a324-1797-47ca-b549-63dd859f95d6" />
 
