@@ -29,3 +29,5 @@ sonar-project.properties
 
 # Claude
 .claude/
+
+docs/
