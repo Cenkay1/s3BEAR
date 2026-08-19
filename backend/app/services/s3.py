@@ -160,6 +160,36 @@ async def stream_object(bucket: str, key: str) -> tuple[AsyncGenerator[bytes, No
     return _generator(), content_type, content_length
 
 
+class ObjectTooLarge(Exception):
+    """Raised when an object exceeds a caller-supplied size limit."""
+
+    def __init__(self, size: int):
+        self.size = size
+        super().__init__(f"Object is {size} bytes")
+
+
+async def get_object_bytes(bucket: str, key: str, max_bytes: int | None = None) -> tuple[bytes, str]:
+    """Read a full object into memory. Returns (data, content_type).
+    Raises FileNotFoundError if missing, ObjectTooLarge if it exceeds max_bytes."""
+    client = _make_client()
+    try:
+        response = await _run_sync(client.get_object, Bucket=bucket, Key=key)
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "NoSuchKey":
+            raise FileNotFoundError(f"Object not found: {key}")
+        raise
+
+    content_type = response.get("ContentType", DEFAULT_CONTENT_TYPE)
+    content_length = response.get("ContentLength", 0)
+    body = response["Body"]
+    if max_bytes is not None and content_length and content_length > max_bytes:
+        body.close()
+        raise ObjectTooLarge(content_length)
+
+    data = await _run_sync(body.read)
+    return data, content_type
+
+
 async def get_bucket_size(bucket_name: str) -> dict:
     """Return total size and object count for a bucket."""
     client = _make_client()
@@ -302,6 +332,46 @@ async def move_object(source_bucket: str, source_key: str, dest_bucket: str, des
     await copy_object(source_bucket, source_key, dest_bucket, dest_key)
     client = _make_client()
     await _run_sync(client.delete_object, Bucket=source_bucket, Key=source_key)
+
+
+def build_dest_key(source_key: str, dest_prefix: str) -> str:
+    """Compute the destination key for a bulk copy/move: dest_prefix + basename.
+    Pure helper (no I/O)."""
+    basename = source_key.rstrip("/").split("/")[-1]
+    if not basename:
+        raise ValueError("source_key has no basename")
+    if dest_prefix and not dest_prefix.endswith("/"):
+        dest_prefix += "/"
+    return f"{dest_prefix}{basename}"
+
+
+async def bulk_copy_move(
+    source_bucket: str,
+    keys: list[str],
+    dest_bucket: str,
+    dest_prefix: str,
+    *,
+    move: bool = False,
+) -> dict:
+    """Copy (or move) many objects into dest_bucket under dest_prefix. Continues
+    past per-object failures. Returns {"succeeded": [dest_key...], "errors": [{key, error}...]}."""
+    succeeded: list[str] = []
+    errors: list[dict] = []
+    for key in keys:
+        try:
+            dest_key = build_dest_key(key, dest_prefix)
+            if dest_bucket == source_bucket and dest_key == key:
+                raise ValueError("source and destination are identical")
+            if move:
+                await move_object(source_bucket, key, dest_bucket, dest_key)
+            else:
+                await copy_object(source_bucket, key, dest_bucket, dest_key)
+            succeeded.append(dest_key)
+        except FileNotFoundError:
+            errors.append({"key": key, "error": "source not found"})
+        except Exception as e:  # noqa: BLE001 — collect and continue
+            errors.append({"key": key, "error": str(e)})
+    return {"succeeded": succeeded, "errors": errors}
 
 
 async def get_object_metadata(bucket: str, key: str) -> dict:

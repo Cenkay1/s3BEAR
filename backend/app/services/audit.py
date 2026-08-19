@@ -25,6 +25,13 @@ PERMISSION_CHANGE = "permission_change"
 COPY = "copy"
 MOVE = "move"
 CLEANUP = "cleanup"
+SHARE_CREATE = "share_create"
+SHARE_REVOKE = "share_revoke"
+TOKEN_CREATE = "token_create"
+TOKEN_REVOKE = "token_revoke"
+WEBHOOK_CREATE = "webhook_create"
+WEBHOOK_UPDATE = "webhook_update"
+WEBHOOK_DELETE = "webhook_delete"
 
 
 async def _write_audit_to_file(
@@ -89,6 +96,18 @@ async def log_audit(
     )
     db.add(entry)
     await db.flush()
+
+    # Enqueue webhook deliveries for subscribed endpoints (same transaction, so a
+    # rolled-back request produces no deliveries). Best-effort: never fail the request.
+    try:
+        from app.services import webhook as webhook_service
+        payload = webhook_service.build_payload(
+            event=action, user_id=user_id, user_email=user_email,
+            bucket=bucket, object_key=object_key, details=details,
+        )
+        await webhook_service.enqueue_event(db, action, payload)
+    except Exception:
+        logger.exception("Failed to enqueue webhook deliveries")
 
     # File write (non-blocking, never fails the request)
     try:

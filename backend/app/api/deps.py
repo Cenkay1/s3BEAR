@@ -22,6 +22,17 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # Personal access tokens are opaque and prefixed; resolve them against the DB
+    # before attempting JWT validation. A PAT acts as its owning user.
+    from app.services import api_token as api_token_service
+
+    if api_token_service.looks_like_pat(token):
+        user = await api_token_service.authenticate(db, token)
+        if user is None:
+            raise credentials_exc
+        return user
+
     try:
         payload = decode_token(token)
         if payload.get("type") != "access":

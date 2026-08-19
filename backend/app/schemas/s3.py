@@ -39,3 +39,19 @@ class DeleteRequest(BaseModel):
 class DeleteResult(BaseModel):
     deleted: list[str]
     errors: list[str]
+
+
+class BulkCopyMoveRequest(BaseModel):
+    source_bucket: str
+    keys: list[str]
+    dest_prefix: str = ""  # objects land at dest_prefix + basename(source_key)
+
+
+class BulkError(BaseModel):
+    key: str
+    error: str
+
+
+class BulkResult(BaseModel):
+    succeeded: list[str]
+    errors: list[BulkError]

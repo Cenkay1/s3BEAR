@@ -1,6 +1,13 @@
 # s3BEAR — How To Guide
 
-A feature-by-feature technical reference. Each section explains **what the feature does**, **how to use it**, and includes a **real-world use case** so you know when to reach for it.
+A feature-by-feature technical reference. Each section explains **what the feature does**,
+**how to use it**, and includes a **real-world use case** so you know when to reach for it.
+
+s3BEAR serves three purposes, and the sections below are grouped to match them:
+
+1. **S3 management console** — manage buckets, objects, permissions, quotas, and cleanup policies from the web.
+2. **Authenticated image serving** — serve images from private buckets to the browser, with per-user permission checks and on-the-fly transforms.
+3. **LLM-ready public hosting** — expose objects as expiring, revocable HTTPS URLs suitable for multimodal LLM inputs.
 
 ## Table of Contents
 
@@ -9,17 +16,24 @@ A feature-by-feature technical reference. Each section explains **what the featu
 - [Kubernetes Deployment (Helm)](#kubernetes-deployment-helm)
 - [MinIO / S3 CORS Configuration](#minio--s3-cors-configuration)
 
-**Core Features**
+**Access & Identity**
 - [Authentication: Local + Azure Entra SSO](#authentication-local--azure-entra-sso)
+- [Personal Access Tokens (API Tokens)](#personal-access-tokens-api-tokens)
 - [Group-Based Bucket Permissions](#group-based-bucket-permissions)
+- [Azure Entra User Import](#azure-entra-user-import)
+
+**S3 Management**
 - [Bucket Management & Quotas](#bucket-management--quotas)
 - [Object Upload (Simple + Multipart)](#object-upload-simple--multipart)
-- [Object Copy / Move](#object-copy--move)
-- [Authenticated Image Proxy](#authenticated-image-proxy)
-- [Public Share Links](#public-share-links)
+- [Object Copy / Move (+ Bulk)](#object-copy--move)
 - [Scheduled Cleanup Policies](#scheduled-cleanup-policies)
+- [Webhooks](#webhooks)
 - [Audit Log](#audit-log)
-- [Azure Entra User Import](#azure-entra-user-import)
+
+**Image Serving & LLM Hosting**
+- [Authenticated Image Proxy](#authenticated-image-proxy)
+- [On-the-fly Image Transformation](#on-the-fly-transformation)
+- [Public Share Links](#public-share-links)
 
 **Operations**
 - [Troubleshooting](#troubleshooting)
@@ -222,6 +236,54 @@ Set `auto_create_users=true` in app settings. When a new Entra user logs in for 
 
 ---
 
+## Personal Access Tokens (API Tokens)
+
+### What it does
+
+Personal access tokens (PATs) let scripts, CI jobs, and service integrations
+authenticate without a username and password. A PAT:
+
+- Is an opaque string prefixed with `s3bear_pat_`, presented as a normal `Authorization: Bearer` credential — so **every existing endpoint accepts it**.
+- **Acts as the user who created it** and inherits that user's group permissions. There are no separate token scopes.
+- Is stored **hashed** (SHA-256); the raw value is shown only once, at creation.
+- Has an **optional expiry** (default: never) and can be **revoked** at any time.
+- Records a throttled `last_used_at` so you can spot stale or unused tokens.
+
+### How to use
+
+UI: **API Tokens** in the sidebar → **New token** → give it a name and an expiry →
+copy the token (shown only once). Revoke from the same page when it is no longer needed.
+
+API:
+
+```bash
+# Create a token (using an interactive session's JWT, or another PAT)
+curl -X POST http://localhost:8200/api/v1/tokens \
+  -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" \
+  -d '{"name": "ci-pipeline", "expires_in": "90d"}'
+# → { "id": "...", "name": "ci-pipeline", "token": "s3bear_pat_...", "token_prefix": "s3bear_pat_AbCd1234", "expires_at": "2026-11-17T..." }
+
+# Use it like any Bearer token
+curl http://localhost:8200/api/v1/buckets \
+  -H "Authorization: Bearer s3bear_pat_..."
+
+# List and revoke
+curl http://localhost:8200/api/v1/tokens -H "Authorization: Bearer $JWT"
+curl -X DELETE http://localhost:8200/api/v1/tokens/<token-id> -H "Authorization: Bearer $JWT"
+```
+
+`expires_in` accepts `30d` / `90d` / `365d`, an integer number of seconds, or `never` (the default).
+
+### Use case: CI pushing build artifacts
+
+Your CI pipeline needs to upload artifacts to `builds-staging` on every run.
+Create a service user, put it in a group with `write` on `builds-*`, and issue a
+90-day PAT named `ci-pipeline`. The pipeline uses the token as a Bearer credential;
+if the token leaks, you revoke it from the UI without touching the account password,
+and the `last_used_at` column tells you whether it is still in use before you rotate it.
+
+---
+
 ## Group-Based Bucket Permissions
 
 ### What it does
@@ -239,7 +301,7 @@ From the UI: **Groups → New Group → Add Permission**.
 
 ```
 Bucket pattern: logs-*
-✓ List   ✓ Read   ✗ Write   ✗ Delete
+List: yes   Read: yes   Write: no   Delete: no
 ```
 
 This grants the group read-only access to every bucket whose name starts with `logs-`.
@@ -350,7 +412,7 @@ Cross-bucket and cross-prefix in one operation.
 
 ### How to use
 
-UI: hover any object → click ⊞ to copy or ✂ to move → pick destination bucket and edit the destination key.
+UI: in the object row, use the "copy to" or "move to" action, then pick a destination bucket and edit the destination key.
 
 API:
 
@@ -372,10 +434,30 @@ curl -X POST http://localhost:8200/api/v1/buckets/DEST/objects/move \
   -d '{ ... same body ... }'
 ```
 
+### Bulk copy / move
+
+Select multiple objects in the bucket browser (checkboxes) → the toolbar shows **cp (N)** / **mv (N)** / **rm (N)**. Pick a destination bucket and an optional prefix; each object keeps its filename under that prefix (`dest_prefix + basename`).
+
+```bash
+# Copy many objects into archive/ of another bucket
+curl -X POST http://localhost:8200/api/v1/buckets/DEST/objects/bulk-copy \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{
+    "source_bucket": "SRC",
+    "keys": ["a/1.png", "a/2.png", "b/3.png"],
+    "dest_prefix": "archive/2026/"
+  }'
+# → { "succeeded": ["archive/2026/1.png", ...], "errors": [] }
+
+# Bulk move uses the same body at /objects/bulk-move
+```
+
+Bulk operations are **partial-failure tolerant**: each object is attempted independently, and the response lists both `succeeded` keys and per-object `errors` (e.g. a missing source), so one bad object doesn't abort the batch.
+
 ### Required permissions
 
-- **Copy:** `read` on source bucket, `write` on destination
-- **Move:** `read` + `delete` on source, `write` on destination
+- **Copy / bulk-copy:** `read` on source bucket, `write` on destination
+- **Move / bulk-move:** `read` + `delete` on source, `write` on destination
 
 ### Use case: Promoting build artifacts
 
@@ -392,9 +474,29 @@ CI uploads nightly builds to `builds-staging`. After QA approves a release, an o
 - JWT authentication (same permission check as `read`)
 - Content-type allow-list: `jpeg`, `png`, `gif`, `webp`, `svg`, `bmp`, `tiff`, `avif`. Anything else returns **415 Unsupported Media Type** — prevents the endpoint from being abused as a generic file proxy.
 - `Cache-Control: public, max-age=3600` headers for browser caching
-- Streaming response (no full buffer in memory)
+- Streaming response (no full buffer in memory) when no transform is requested
 
 Used by the in-app image preview modal so previews work even on private buckets.
+
+### On-the-fly transformation
+
+Add any of these query params to resize / re-encode the image without storing a second copy (also available on [public share links](#public-share-links)):
+
+| Param | Meaning | Example |
+|-------|---------|---------|
+| `w` / `h` | Target width / height in px (aspect preserved when only one given) | `?w=1024` |
+| `format` | Output format: `webp`, `jpeg`, `png` | `?format=webp` |
+| `q` | Quality 1–100 (applies to webp/jpeg) | `?q=80` |
+| `fit` | `contain` (default, fits inside box) or `cover` (fills + center-crops) | `?fit=cover` |
+
+```bash
+curl "http://localhost:8200/api/v1/images/products/sku-12345.png?w=512&format=webp&q=80" \
+  -H "Authorization: Bearer $TOKEN" -o thumb.webp
+```
+
+When a transform is requested the object is buffered in memory and processed with Pillow; sources larger than `MAX_IMAGE_TRANSFORM_MB` (default 25) return **413**, and non-raster/undecodable sources (e.g. SVG) return **415**. Without transform params the original streaming path is used unchanged.
+
+> **Why this matters for LLMs:** shipping a 4000×3000 product photo to a multimodal model wastes tokens and latency. `?w=1024&format=webp&q=80` hands the model a right-sized image straight from the share URL — no pre-processing pipeline, no second stored asset.
 
 ### How to use
 
@@ -425,31 +527,43 @@ Permissions are enforced per-user, the URL never expires, and you get free brows
 
 ### What it does
 
-Turns any object in a private bucket into a **publicly accessible HTTPS URL** — no auth, no expiry token, no S3 ACL changes. Internally:
+Turns any object in a private bucket into a **tokenized, expiring, revocable HTTPS URL** — no S3 ACL changes. Internally:
 
-- `POST /api/v1/share/{bucket}/{key}` (authenticated, requires `read`) → returns a public URL
-- `GET /api/v1/public/{bucket}/{object_key}` → streams the object with `Content-Disposition: inline` so browsers render it directly (images/PDFs) instead of forcing a download
+- `POST /api/v1/share/{bucket}/{key}` (authenticated, requires `read`) → mints an opaque token and returns `{ token, url, expires_at }`. The token is stored **hashed** (SHA-256); the raw value is shown only once.
+- `GET /api/v1/public/s/{token}` → **no auth**. Validates expiry + revocation, streams the object with `Content-Disposition: inline` (browsers render images/PDFs directly), and increments an access counter.
+- `GET /api/v1/share` / `DELETE /api/v1/share/{id}` → list and revoke your links (admins see all).
 
-The bucket itself stays private at the S3 level. s3BEAR is the only path that can serve the object publicly, so revoking access = deleting the object (or rotating the bucket).
+The bucket stays private at the S3 level. Access can be revoked at any time — expired/revoked/unknown tokens return **410 Gone** without revealing whether the underlying object exists.
+
+> **Expiry:** choose `1h` / `24h` / `7d` (default) / `30d`, an integer number of seconds, or `never`. `never` links are permanent until you revoke them from the **Shares** page.
+
+> **Migration note:** the old untokenized `GET /api/v1/public/{bucket}/{key}` endpoint has been **removed** and now returns 410 Gone. All public access flows through share tokens.
+
+> **On-the-fly transforms:** share URLs accept the same image params as the proxy — `?w=512&format=webp&q=80` etc. See [On-the-fly transformation](#on-the-fly-transformation). Perfect for feeding right-sized images to LLMs from a single share link.
 
 ### How to use
 
-UI: open the **Share** modal on any file → click **Create share link** → copy the URL.
+UI: open the **Share** modal on any file → pick an expiry → **Generate Share Link** → copy the URL. Manage/revoke existing links from the **Shares** page in the sidebar.
 
 API:
 
 ```bash
-# Create the share link (authenticated)
+# Create a 7-day share link (authenticated)
 curl -X POST "http://localhost:8200/api/v1/share/marketing-assets/logos/hero.png" \
-  -H "Authorization: Bearer $TOKEN"
-# → { "url": "https://s3bear.example.com/api/v1/public/marketing-assets/logos/hero.png" }
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"expires_in": "7d"}'
+# → { "token": "xZ...", "url": "/api/v1/public/s/xZ...", "expires_at": "2026-08-25T..." }
 
-# Anyone, no auth required
-curl https://s3bear.example.com/api/v1/public/marketing-assets/logos/hero.png \
-  -o hero.png
+# Anyone, no auth required (until it expires or is revoked)
+curl https://s3bear.example.com/api/v1/public/s/xZ... -o hero.png
+
+# Revoke it
+curl -X DELETE https://s3bear.example.com/api/v1/share/<link-id> \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
-The returned URL is a stable, shareable HTTPS endpoint — paste it into emails, embed it in `<img>` tags, send it to external partners.
+The returned URL is a shareable HTTPS endpoint — paste it into emails, embed it in `<img>` tags, send it to external partners. When it expires or you revoke it, the URL 410s.
 
 ### Use case: Feeding images into an LLM as an HTTP source
 
@@ -457,7 +571,7 @@ Modern multimodal LLM APIs (Claude, GPT-4o, Gemini) accept images either as base
 
 If your reference imagery sits in a private S3 bucket — product photos, screenshots, documentation diagrams — you can:
 
-1. Click **Share** on the image in s3BEAR → get `https://s3bear.example.com/api/v1/public/products/sku-12345.jpg`
+1. Click **Share** on the image in s3BEAR (pick an expiry, e.g. `24h`) → get `https://s3bear.example.com/api/v1/public/s/xZ...`
 2. Pass that URL straight to the LLM:
 
 ```python
@@ -465,7 +579,7 @@ from anthropic import Anthropic
 
 client = Anthropic()
 response = client.messages.create(
-    model="claude-opus-4-7",
+    model="claude-opus-4-8",
     max_tokens=1024,
     messages=[{
         "role": "user",
@@ -474,7 +588,7 @@ response = client.messages.create(
                 "type": "image",
                 "source": {
                     "type": "url",
-                    "url": "https://s3bear.example.com/api/v1/public/products/sku-12345.jpg"
+                    "url": "https://s3bear.example.com/api/v1/public/s/xZ..."
                 }
             },
             {"type": "text", "text": "Describe what's wrong with this product photo."}
@@ -487,7 +601,7 @@ The LLM provider fetches the image from your s3BEAR endpoint over HTTPS. You don
 
 ### Use case: Embedding files in external documents
 
-A vendor needs the latest version of a spec sheet linked in their portal. Instead of emailing them a fresh PDF every time the file changes, share the s3BEAR public URL once. Update the file in the bucket → the URL serves the new version automatically. Delete the file → the link 404s.
+A vendor needs the latest version of a spec sheet linked in their portal. Instead of emailing them a fresh PDF every time the file changes, create a long-lived (or `never`-expiring) share link once. Updating the file in the bucket serves the new version automatically through the same token. When the engagement ends, revoke the link (or let it expire) and the URL returns 410.
 
 ### Use case: OG / preview images for marketing pages
 
@@ -542,6 +656,91 @@ Compliance says raw access logs older than 90 days must be purged. Create a poli
 ### Use case: Cleaning up CI build artifacts
 
 Your CI pipeline drops a fresh artifact bundle into `builds-pr/` for every pull request. PRs close, branches die, the bucket grows forever. Policy: `builds-pr/*`, older-than `14`, weekly cron. Two weeks after a PR is merged, its artifacts evaporate.
+
+---
+
+## Webhooks
+
+### What it does
+
+Webhooks turn s3BEAR's state-changing events into outbound HTTP callbacks, so external
+systems can react in near real time — trigger a search re-index on upload, generate a
+thumbnail, post to Slack, or invalidate a cache.
+
+- An admin registers **endpoints**, each subscribing to a set of events (the same names as [audit](#audit-log) actions, or `*` for all).
+- When a subscribed event occurs, a **delivery** is enqueued in the same database transaction as the audit record — so an action that rolls back never fires a webhook.
+- A background dispatcher POSTs each delivery as JSON, signed with **HMAC-SHA256**, and retries with backoff up to `WEBHOOK_MAX_ATTEMPTS` (default 4: the initial attempt plus three retries at ~1m / 5m / 30m).
+- Every attempt is recorded (`status`, `attempts`, `last_status_code`, `last_error`), visible per endpoint in the UI.
+
+### Payload and headers
+
+```http
+POST /your/endpoint HTTP/1.1
+Content-Type: application/json
+X-S3Bear-Event: upload
+X-S3Bear-Delivery: 4b2f...      (delivery id)
+X-S3Bear-Signature: sha256=...  (HMAC of the raw body, keyed with your secret)
+
+{
+  "event": "upload",
+  "timestamp": "2026-08-19T10:00:00+00:00",
+  "actor": { "user_id": "…", "email": "ci@example.com" },
+  "bucket": "builds-staging",
+  "object_key": "nightly/app.bin",
+  "details": { "size": 10485760, "content_type": "application/octet-stream" }
+}
+```
+
+### Verifying the signature
+
+Compute HMAC-SHA256 over the **raw request body** with the endpoint's signing secret
+(shown once at creation) and compare, in constant time, to the `X-S3Bear-Signature` header:
+
+```python
+import hmac, hashlib
+
+def verify(secret: str, raw_body: bytes, header: str) -> bool:
+    expected = "sha256=" + hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, header)
+```
+
+### How to use
+
+UI: **Webhooks** (admin) → **New webhook** → set a name, URL, and events → copy the
+signing secret (shown once). Use **test** to enqueue a synthetic `ping` delivery, and
+**deliveries** to inspect recent attempts. Toggle **enabled** to pause an endpoint.
+
+API:
+
+```bash
+# Create an endpoint subscribed to object writes/removals
+curl -X POST http://localhost:8200/api/v1/webhooks \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{
+    "name": "indexer",
+    "url": "https://indexer.internal/s3bear",
+    "events": ["upload", "delete", "move"]
+  }'
+# → { "id": "...", "secret": "…shown once…", "events": [...], "enabled": true }
+
+# Inspect recent deliveries
+curl http://localhost:8200/api/v1/webhooks/<id>/deliveries \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Return any `2xx` to acknowledge a delivery; any other status (or a timeout) triggers a retry.
+
+### Use case: Auto-thumbnail pipeline
+
+Subscribe an endpoint to `upload`. When a new image lands, your service receives the
+bucket and key, fetches a resized copy from the [image proxy](#on-the-fly-transformation)
+(`?w=256&format=webp`), and writes the thumbnail back — no polling, no cron.
+
+### Use case: Compliance alerting
+
+Subscribe to `delete` and `delete_bucket` on sensitive buckets. Post each delivery to a
+Slack channel or SIEM so destructive actions are surfaced immediately, alongside the
+tamper-evident [audit log](#audit-log).
 
 ---
 

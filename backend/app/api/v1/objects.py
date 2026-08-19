@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, get_db
 from app.models.settings import AppSetting
 from app.models.user import User
-from app.schemas.s3 import CopyMoveRequest, DeleteRequest, DeleteResult
+from app.schemas.s3 import BulkCopyMoveRequest, BulkResult, CopyMoveRequest, DeleteRequest, DeleteResult
 from app.services import s3 as s3_service
 from app.services.audit import log_audit, UPLOAD, DELETE, COPY, MOVE
 
@@ -134,3 +134,46 @@ async def move_object(
                     details={"source_bucket": body.source_bucket, "source_key": body.source_key},
                     ip_address=request.client.host if request.client else None)
     return {"key": body.dest_key}
+
+
+@router.post("/{bucket_name}/objects/bulk-copy", response_model=BulkResult,
+             responses={403: {"description": "Insufficient permissions"}})
+async def bulk_copy_objects(
+    bucket_name: str,
+    body: BulkCopyMoveRequest,
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    _check_perm(current_user, body.source_bucket, "read")
+    _check_perm(current_user, bucket_name, "write")
+    result = await s3_service.bulk_copy_move(
+        body.source_bucket, body.keys, bucket_name, body.dest_prefix, move=False
+    )
+    await log_audit(db, current_user, COPY, bucket=bucket_name,
+                    details={"bulk": True, "source_bucket": body.source_bucket,
+                             "count": len(result["succeeded"]), "errors": len(result["errors"])},
+                    ip_address=request.client.host if request.client else None)
+    return BulkResult(**result)
+
+
+@router.post("/{bucket_name}/objects/bulk-move", response_model=BulkResult,
+             responses={403: {"description": "Insufficient permissions"}})
+async def bulk_move_objects(
+    bucket_name: str,
+    body: BulkCopyMoveRequest,
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    _check_perm(current_user, body.source_bucket, "read")
+    _check_perm(current_user, body.source_bucket, "delete")
+    _check_perm(current_user, bucket_name, "write")
+    result = await s3_service.bulk_copy_move(
+        body.source_bucket, body.keys, bucket_name, body.dest_prefix, move=True
+    )
+    await log_audit(db, current_user, MOVE, bucket=bucket_name,
+                    details={"bulk": True, "source_bucket": body.source_bucket,
+                             "count": len(result["succeeded"]), "errors": len(result["errors"])},
+                    ip_address=request.client.host if request.client else None)
+    return BulkResult(**result)

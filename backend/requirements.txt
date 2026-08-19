@@ -19,3 +19,4 @@ aiofiles>=23.2
 python-dotenv>=1.0
 slowapi>=0.1.9
 requests>=2.31
+Pillow>=10.3

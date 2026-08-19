@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Button, Image, Input, message, Modal, Space, Typography } from 'antd'
 import { CopyOutlined, LinkOutlined } from '@ant-design/icons'
-import { bucketsApi } from '../../api/buckets'
+import { shareApi } from '../../api/share'
 
 interface ImagePreviewProps {
   bucket: string
@@ -24,7 +24,7 @@ export default function ImagePreview({ bucket, objectKey, visible, onClose }: Im
   const handleCreateLink = async () => {
     setShareLoading(true)
     try {
-      const res = await bucketsApi.createShareLink(bucket, objectKey)
+      const res = await shareApi.create(bucket, objectKey, '24h')
       const fullUrl = `${window.location.origin}${res.data.url}`
       setShareUrl(fullUrl)
     } catch {

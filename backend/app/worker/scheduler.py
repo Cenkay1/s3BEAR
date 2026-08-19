@@ -157,6 +157,50 @@ def _run_audit_log_cleanup_sync():
         loop.close()
 
 
+def _run_webhook_dispatch_sync():
+    """Sync wrapper for the async webhook dispatcher, called on an interval."""
+    from app.services.webhook import dispatch_pending
+    from app.core.database import AsyncSessionLocal
+
+    async def _inner():
+        async with AsyncSessionLocal() as db:
+            result = await dispatch_pending(db)
+            await db.commit()
+            return result
+
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(_inner())
+        if result.get("attempted"):
+            logger.info("Webhook dispatch: %s", result)
+    except Exception as e:
+        logger.exception("Webhook dispatch failed: %s", e)
+    finally:
+        loop.close()
+
+
+def _schedule_webhook_dispatch() -> None:
+    """Schedule the webhook dispatcher to run every 20 seconds."""
+    if not settings.WEBHOOKS_ENABLED:
+        return
+
+    scheduler = get_scheduler()
+    job_id = "webhook_dispatch"
+    if not scheduler.get_job(job_id):
+        from apscheduler.triggers.interval import IntervalTrigger
+        scheduler.add_job(
+            _run_webhook_dispatch_sync,
+            trigger=IntervalTrigger(seconds=20),
+            id=job_id,
+            replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=60,
+        )
+        logger.info("Scheduled webhook dispatch job (every 20s)")
+
+
 def _schedule_audit_log_cleanup() -> None:
     """Schedule daily audit log cleanup at 02:00 UTC."""
     if not settings.AUDIT_LOG_ENABLED:
@@ -181,6 +225,7 @@ def start_scheduler() -> None:
     if not scheduler.running:
         scheduler.start()
         _schedule_audit_log_cleanup()
+        _schedule_webhook_dispatch()
         logger.info("APScheduler started")
 
 
