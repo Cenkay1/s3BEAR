@@ -59,6 +59,7 @@ enforcing permission checks, audit logging, and quota limits.
 - **Multipart upload** — large files upload directly from the browser to S3 via presigned URLs, bypassing the backend.
 - **Bulk operations** — multi-select copy/move/delete; each object is attempted independently and partial failures are reported.
 - **Scheduled cleanup policies** — cron-based automatic object deletion, resilient across restarts (APScheduler + PostgreSQL job store).
+- **Webhooks** — HMAC-signed HTTP callbacks on state-changing events, with per-endpoint event subscriptions, automatic retries with backoff, and a delivery log.
 - **Audit logging** — every state-changing operation is recorded to the database (and optionally to JSONL files).
 - **Azure Entra SSO** — MSAL/OIDC login and user import, with a local-account fallback.
 - **Personal access tokens** — revocable, optionally expiring API tokens for scripts and CI; act as the owning user and work on every endpoint.
@@ -89,7 +90,7 @@ flowchart LR
 
     subgraph Data["Data Plane"]
         S3[("S3 / MinIO<br/>object storage")]
-        PG[("PostgreSQL<br/>users · groups · policies · audit · share links")]
+        PG[("PostgreSQL<br/>users · groups · policies · audit · share links · webhooks")]
     end
 
     UI -->|"JWT REST"| MW
@@ -314,6 +315,7 @@ All endpoints are under `/api/v1`. Interactive OpenAPI docs are served at `http:
 | `images` | Authenticated image proxy with optional on-the-fly transforms |
 | `share` + `public` | Expiring/revocable tokenized public links (create/list/revoke) + unauthenticated serving at `/public/s/{token}` |
 | `policies` | Cleanup policy CRUD and manual runs |
+| `webhooks` | Webhook endpoint CRUD, delivery log, and test delivery (admin) |
 | `users` / `groups` | User and group management, permission assignment, Entra import |
 | `settings` | Runtime settings (auth toggles, auto-provisioning, quotas) |
 | `audit` | Audit-log queries (filtering + pagination) |
@@ -333,6 +335,9 @@ Key environment variables (see `.env.example` for the full list):
 | `MULTIPART_PART_SIZE_MB` | `10` | Multipart part size |
 | `PRESIGNED_URL_EXPIRY_SECONDS` | `1800` | Presigned URL lifetime |
 | `MAX_IMAGE_TRANSFORM_MB` | `25` | Source-size cap for on-the-fly image transforms (413 on breach) |
+| `WEBHOOKS_ENABLED` | `true` | Enable webhook enqueue + dispatch |
+| `WEBHOOK_MAX_ATTEMPTS` | `4` | Delivery attempts before a webhook is marked failed |
+| `WEBHOOK_TIMEOUT_SECONDS` | `10` | Per-delivery HTTP timeout |
 | `AZURE_TENANT_ID` / `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` | `""` | Entra SSO credentials |
 | `AUDIT_LOG_ENABLED` / `AUDIT_LOG_FILE_ENABLED` | `true` | Audit logging (database / file) |
 | `AUDIT_LOG_RETENTION_DAYS` | `90` | File audit retention |

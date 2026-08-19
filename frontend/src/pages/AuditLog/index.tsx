@@ -19,12 +19,16 @@ const ACTION_COLORS: Record<string, string> = {
   share_revoke: 'red',
   token_create: 'green',
   token_revoke: 'red',
+  webhook_create: 'cyan',
+  webhook_update: 'blue',
+  webhook_delete: 'red',
 }
 
 const ACTION_OPTIONS = [
   'upload', 'delete', 'download', 'create_bucket', 'delete_bucket',
   'user_create', 'user_delete', 'permission_change', 'copy', 'move', 'cleanup',
   'share_create', 'share_revoke', 'token_create', 'token_revoke',
+  'webhook_create', 'webhook_update', 'webhook_delete',
 ]
 
 export default function AuditLogPage() {

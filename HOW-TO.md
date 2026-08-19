@@ -27,6 +27,7 @@ s3BEAR serves three purposes, and the sections below are grouped to match them:
 - [Object Upload (Simple + Multipart)](#object-upload-simple--multipart)
 - [Object Copy / Move (+ Bulk)](#object-copy--move)
 - [Scheduled Cleanup Policies](#scheduled-cleanup-policies)
+- [Webhooks](#webhooks)
 - [Audit Log](#audit-log)
 
 **Image Serving & LLM Hosting**
@@ -655,6 +656,91 @@ Compliance says raw access logs older than 90 days must be purged. Create a poli
 ### Use case: Cleaning up CI build artifacts
 
 Your CI pipeline drops a fresh artifact bundle into `builds-pr/` for every pull request. PRs close, branches die, the bucket grows forever. Policy: `builds-pr/*`, older-than `14`, weekly cron. Two weeks after a PR is merged, its artifacts evaporate.
+
+---
+
+## Webhooks
+
+### What it does
+
+Webhooks turn s3BEAR's state-changing events into outbound HTTP callbacks, so external
+systems can react in near real time — trigger a search re-index on upload, generate a
+thumbnail, post to Slack, or invalidate a cache.
+
+- An admin registers **endpoints**, each subscribing to a set of events (the same names as [audit](#audit-log) actions, or `*` for all).
+- When a subscribed event occurs, a **delivery** is enqueued in the same database transaction as the audit record — so an action that rolls back never fires a webhook.
+- A background dispatcher POSTs each delivery as JSON, signed with **HMAC-SHA256**, and retries with backoff up to `WEBHOOK_MAX_ATTEMPTS` (default 4: the initial attempt plus three retries at ~1m / 5m / 30m).
+- Every attempt is recorded (`status`, `attempts`, `last_status_code`, `last_error`), visible per endpoint in the UI.
+
+### Payload and headers
+
+```http
+POST /your/endpoint HTTP/1.1
+Content-Type: application/json
+X-S3Bear-Event: upload
+X-S3Bear-Delivery: 4b2f...      (delivery id)
+X-S3Bear-Signature: sha256=...  (HMAC of the raw body, keyed with your secret)
+
+{
+  "event": "upload",
+  "timestamp": "2026-08-19T10:00:00+00:00",
+  "actor": { "user_id": "…", "email": "ci@example.com" },
+  "bucket": "builds-staging",
+  "object_key": "nightly/app.bin",
+  "details": { "size": 10485760, "content_type": "application/octet-stream" }
+}
+```
+
+### Verifying the signature
+
+Compute HMAC-SHA256 over the **raw request body** with the endpoint's signing secret
+(shown once at creation) and compare, in constant time, to the `X-S3Bear-Signature` header:
+
+```python
+import hmac, hashlib
+
+def verify(secret: str, raw_body: bytes, header: str) -> bool:
+    expected = "sha256=" + hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, header)
+```
+
+### How to use
+
+UI: **Webhooks** (admin) → **New webhook** → set a name, URL, and events → copy the
+signing secret (shown once). Use **test** to enqueue a synthetic `ping` delivery, and
+**deliveries** to inspect recent attempts. Toggle **enabled** to pause an endpoint.
+
+API:
+
+```bash
+# Create an endpoint subscribed to object writes/removals
+curl -X POST http://localhost:8200/api/v1/webhooks \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{
+    "name": "indexer",
+    "url": "https://indexer.internal/s3bear",
+    "events": ["upload", "delete", "move"]
+  }'
+# → { "id": "...", "secret": "…shown once…", "events": [...], "enabled": true }
+
+# Inspect recent deliveries
+curl http://localhost:8200/api/v1/webhooks/<id>/deliveries \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Return any `2xx` to acknowledge a delivery; any other status (or a timeout) triggers a retry.
+
+### Use case: Auto-thumbnail pipeline
+
+Subscribe an endpoint to `upload`. When a new image lands, your service receives the
+bucket and key, fetches a resized copy from the [image proxy](#on-the-fly-transformation)
+(`?w=256&format=webp`), and writes the thumbnail back — no polling, no cron.
+
+### Use case: Compliance alerting
+
+Subscribe to `delete` and `delete_bucket` on sensitive buckets. Post each delivery to a
+Slack channel or SIEM so destructive actions are surfaced immediately, alongside the
+tamper-evident [audit log](#audit-log).
 
 ---
 

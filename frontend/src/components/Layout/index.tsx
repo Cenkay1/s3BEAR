@@ -9,6 +9,7 @@ import {
   LogoutOutlined,
   SettingOutlined,
   TeamOutlined,
+  ThunderboltOutlined,
   ToolOutlined,
   UserOutlined,
 } from '@ant-design/icons'
@@ -16,7 +17,7 @@ import { useAuthStore } from '../../store/auth'
 
 const { Sider, Content } = Layout
 
-const NAV_KEYS = ['buckets', 'shares', 'tokens', 'users', 'groups', 'policies', 'audit', 'settings'] as const
+const NAV_KEYS = ['buckets', 'shares', 'tokens', 'users', 'groups', 'policies', 'webhooks', 'audit', 'settings'] as const
 
 function resolveSelectedKey(pathname: string): string {
   return NAV_KEYS.find((key) => pathname.startsWith(`/${key}`)) ?? 'buckets'
@@ -38,6 +39,7 @@ export default function AppLayout() {
           { key: 'users', icon: <UserOutlined />, label: <Link to="/users">Users</Link> },
           { key: 'groups', icon: <TeamOutlined />, label: <Link to="/groups">Groups</Link> },
           { key: 'policies', icon: <SettingOutlined />, label: <Link to="/policies">Policies</Link> },
+          { key: 'webhooks', icon: <ThunderboltOutlined />, label: <Link to="/webhooks">Webhooks</Link> },
           { key: 'audit', icon: <AuditOutlined />, label: <Link to="/audit">Audit Log</Link> },
           { key: 'settings', icon: <ToolOutlined />, label: <Link to="/settings">Settings</Link> },
         ]

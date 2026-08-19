@@ -62,6 +62,12 @@ class Settings(BaseSettings):
     # Image transformation (on-the-fly resize/format via ?w=&h=&format=&q=&fit=)
     MAX_IMAGE_TRANSFORM_MB: int = 25  # source objects larger than this are served un-transformed
 
+    # Webhooks
+    WEBHOOKS_ENABLED: bool = True
+    WEBHOOK_MAX_ATTEMPTS: int = 4       # initial attempt + 3 retries
+    WEBHOOK_TIMEOUT_SECONDS: int = 10
+    WEBHOOK_DELIVERY_RETENTION_DAYS: int = 30
+
     # Audit Log
     AUDIT_LOG_ENABLED: bool = True
     AUDIT_LOG_FILE_ENABLED: bool = True

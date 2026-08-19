@@ -13,6 +13,7 @@ import GroupsPage from './pages/Groups'
 import PoliciesPage from './pages/Policies'
 import SettingsPage from './pages/Settings'
 import AuditLogPage from './pages/AuditLog'
+import WebhooksPage from './pages/Webhooks'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -72,6 +73,14 @@ export default function App() {
             element={
               <RequireAdmin>
                 <PoliciesPage />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="webhooks"
+            element={
+              <RequireAdmin>
+                <WebhooksPage />
               </RequireAdmin>
             }
           />

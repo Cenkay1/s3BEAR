@@ -6,5 +6,6 @@ from app.models.audit import AuditLog
 from app.models.refresh_token import RefreshToken
 from app.models.share import ShareLink
 from app.models.api_token import ApiToken
+from app.models.webhook import WebhookEndpoint, WebhookDelivery
 
-__all__ = ["User", "UserGroup", "Group", "BucketPermission", "CleanupPolicy", "AppSetting", "AuditLog", "RefreshToken", "ShareLink", "ApiToken"]
+__all__ = ["User", "UserGroup", "Group", "BucketPermission", "CleanupPolicy", "AppSetting", "AuditLog", "RefreshToken", "ShareLink", "ApiToken", "WebhookEndpoint", "WebhookDelivery"]
