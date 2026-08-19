@@ -4,5 +4,6 @@ from app.models.policy import CleanupPolicy
 from app.models.settings import AppSetting
 from app.models.audit import AuditLog
 from app.models.refresh_token import RefreshToken
+from app.models.share import ShareLink
 
-__all__ = ["User", "UserGroup", "Group", "BucketPermission", "CleanupPolicy", "AppSetting", "AuditLog", "RefreshToken"]
+__all__ = ["User", "UserGroup", "Group", "BucketPermission", "CleanupPolicy", "AppSetting", "AuditLog", "RefreshToken", "ShareLink"]

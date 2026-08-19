@@ -44,12 +44,6 @@ export const bucketsApi = {
   },
   deleteObjects: (bucket: string, keys: string[]) =>
     apiClient.delete(`/buckets/${bucket}/objects`, { data: { keys } }),
-  createShareLink: (bucket: string, key: string, expiresHours: number = 24) =>
-    apiClient.post<{ url: string; expires_at: string }>(
-      `/share/${bucket}/${key}`,
-      null,
-      { params: { expires_hours: expiresHours } },
-    ),
   copyObject: (destBucket: string, sourceBucket: string, sourceKey: string, destKey: string) =>
     apiClient.post(`/buckets/${destBucket}/objects/copy`, {
       source_bucket: sourceBucket,
@@ -62,4 +56,21 @@ export const bucketsApi = {
       source_key: sourceKey,
       dest_key: destKey,
     }),
+  bulkCopy: (destBucket: string, sourceBucket: string, keys: string[], destPrefix: string) =>
+    apiClient.post<BulkResult>(`/buckets/${destBucket}/objects/bulk-copy`, {
+      source_bucket: sourceBucket,
+      keys,
+      dest_prefix: destPrefix,
+    }),
+  bulkMove: (destBucket: string, sourceBucket: string, keys: string[], destPrefix: string) =>
+    apiClient.post<BulkResult>(`/buckets/${destBucket}/objects/bulk-move`, {
+      source_bucket: sourceBucket,
+      keys,
+      dest_prefix: destPrefix,
+    }),
+}
+
+export interface BulkResult {
+  succeeded: string[]
+  errors: { key: string; error: string }[]
 }

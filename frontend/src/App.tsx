@@ -6,6 +6,7 @@ import AppLayout from './components/Layout'
 import LoginPage from './pages/Login'
 import AuthCallbackPage from './pages/Login/Callback'
 import BucketsPage from './pages/Buckets'
+import SharesPage from './pages/Shares'
 import UsersPage from './pages/Users'
 import GroupsPage from './pages/Groups'
 import PoliciesPage from './pages/Policies'
@@ -47,6 +48,7 @@ export default function App() {
           <Route index element={<Navigate to="/buckets" replace />} />
           <Route path="buckets" element={<BucketsPage />} />
           <Route path="buckets/:bucketName" element={<BucketsPage />} />
+          <Route path="shares" element={<SharesPage />} />
           <Route
             path="users"
             element={

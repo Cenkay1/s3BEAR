@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🐻 s3BEAR
+# s3BEAR
 
-**Kurumsal S3 Gateway — güvenli web arayüzü, kimlik doğrulamalı görsel sunumu ve LLM-hazır public hosting tek platformda.**
+**A secure S3 gateway: a web console for managing S3-compatible storage, an authenticated image-serving layer, and LLM-ready public hosting — in one platform.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
 [![Backend](https://img.shields.io/badge/backend-FastAPI-009688.svg)](#tech-stack)
@@ -16,15 +16,17 @@
 
 ## What is s3BEAR?
 
-s3BEAR, herhangi bir S3-uyumlu depolamanın (AWS S3, MinIO, Ceph, Wasabi …) önüne oturan bir **gateway** ve yönetim panelidir. Üç şeyi tek yerde çözer:
+s3BEAR is a gateway and management console that sits in front of any S3-compatible
+backend (AWS S3, MinIO, Ceph, Wasabi, and others). It addresses three needs in one place:
 
-| # | Amaç | Nasıl |
-|---|------|-------|
-| 1 | **S3 Yönetim Arayüzü** | Bucket, obje, izin, kota ve temizlik politikalarını web üzerinden yönetin — komut satırı veya IAM konsolu gerekmez. |
-| 2 | **Kimlik Doğrulamalı Görsel Sunumu** | Private bucket'lardaki görselleri, bucket'ı public yapmadan, kullanıcı izinlerini koruyarak web'de gösterin. |
-| 3 | **LLM-Hazır Public Hosting** | Objeleri kalıcı HTTPS URL'lerine dönüştürün; bu URL'ler doğrudan çok-modlu LLM API'lerine (Claude, GPT-4o, Gemini) görsel girdisi olarak verilebilir. |
+| # | Purpose | How |
+|---|---------|-----|
+| 1 | **S3 management console** | Manage buckets, objects, permissions, quotas, and cleanup policies from the web — no CLI or IAM console required. |
+| 2 | **Authenticated image serving** | Serve images from private buckets to the browser without making the bucket public, while enforcing per-user permissions. |
+| 3 | **LLM-ready public hosting** | Turn objects into stable HTTPS URLs that can be passed directly to multimodal LLM APIs (Claude, GPT-4o, Gemini) as image inputs. |
 
-Depolama katmanı S3 seviyesinde **private kalır**. s3BEAR, izin denetimi, denetim kaydı (audit) ve kota uygulaması yapan tek erişim yoludur.
+The storage layer stays **private at the S3 level**. s3BEAR is the single access path,
+enforcing permission checks, audit logging, and quota limits.
 
 ---
 
@@ -50,14 +52,16 @@ Depolama katmanı S3 seviyesinde **private kalır**. s3BEAR, izin denetimi, dene
 
 ## Highlights
 
-- 🔐 **Group-based bucket permissions** — glob desenli (`marketing-*`) izinler, `list/read/write/delete` bazında; kullanıcının efektif izni tüm gruplarının birleşimidir.
-- 🖼️ **Authenticated image proxy** — private bucket'lardaki görseller, MIME allow-list ve JWT denetimiyle stream edilir.
-- 🌐 **Public share links (LLM-ready)** — bucket'ı public yapmadan kalıcı HTTPS URL üretin.
-- ⬆️ **Multipart upload** — büyük dosyalar tarayıcıdan doğrudan S3'e (presigned URL), backend'i baypas ederek yüklenir.
-- 🗓️ **Scheduled cleanup policies** — cron tabanlı otomatik obje silme; restart'a dayanıklı (APScheduler + PostgreSQL job store).
-- 📋 **Audit logging** — her durum-değiştiren işlem DB'ye (+ opsiyonel JSONL) kaydedilir.
-- 🏢 **Azure Entra SSO** — MSAL OIDC + kullanıcı içe aktarma; yanında yerel hesap fallback.
-- 📊 **Bucket quotas** — per-bucket ve global depolama kotaları (HTTP 413 ile sınırlama).
+- **Group-based bucket permissions** — glob-pattern permissions (`marketing-*`) evaluated per action (`list`/`read`/`write`/`delete`); a user's effective permission is the union across all their groups.
+- **Authenticated image proxy** — images in private buckets are streamed with a MIME allow-list and JWT permission checks.
+- **On-the-fly image transformation** — resize/re-encode via query params (`?w=1024&format=webp&q=80`); ideal for handing right-sized images to LLMs. Available on both the image proxy and public share links.
+- **Expiring, revocable public share links** — mint tokenized HTTPS URLs without making the bucket public; set an expiry or revoke at any time.
+- **Multipart upload** — large files upload directly from the browser to S3 via presigned URLs, bypassing the backend.
+- **Bulk operations** — multi-select copy/move/delete; each object is attempted independently and partial failures are reported.
+- **Scheduled cleanup policies** — cron-based automatic object deletion, resilient across restarts (APScheduler + PostgreSQL job store).
+- **Audit logging** — every state-changing operation is recorded to the database (and optionally to JSONL files).
+- **Azure Entra SSO** — MSAL/OIDC login and user import, with a local-account fallback.
+- **Bucket quotas** — per-bucket and global storage quotas, enforced with HTTP 413.
 
 ---
 
@@ -67,13 +71,13 @@ Depolama katmanı S3 seviyesinde **private kalır**. s3BEAR, izin denetimi, dene
 
 ```mermaid
 flowchart LR
-    subgraph Client["🖥️ Client"]
+    subgraph Client["Client"]
         UI["React 18 SPA<br/>(Ant Design + Zustand)"]
-        LLM["🤖 LLM API<br/>(Claude / GPT-4o / Gemini)"]
-        EXT["🌍 External consumers<br/>(browser, CMS, partners)"]
+        LLM["LLM API<br/>(Claude / GPT-4o / Gemini)"]
+        EXT["External consumers<br/>(browser, CMS, partners)"]
     end
 
-    subgraph Gateway["🐻 s3BEAR Backend (FastAPI)"]
+    subgraph Gateway["s3BEAR Backend (FastAPI)"]
         direction TB
         MW["Middleware<br/>CORS · Security Headers · Rate Limit"]
         AUTH["Auth<br/>JWT (HS256) · MSAL"]
@@ -82,14 +86,14 @@ flowchart LR
         SCHED["APScheduler<br/>cleanup worker"]
     end
 
-    subgraph Data["💾 Data Plane"]
+    subgraph Data["Data Plane"]
         S3[("S3 / MinIO<br/>object storage")]
-        PG[("PostgreSQL<br/>users · groups · policies · audit")]
+        PG[("PostgreSQL<br/>users · groups · policies · audit · share links")]
     end
 
     UI -->|"JWT REST"| MW
     MW --> AUTH --> API --> PERM
-    EXT -->|"public URL (no auth)"| API
+    EXT -->|"public token URL (no auth)"| API
     LLM -->|"HTTPS GET image"| API
     PERM -->|"boto3 (async)"| S3
     API --> PG
@@ -98,7 +102,9 @@ flowchart LR
     UI -. "multipart parts (presigned)" .-> S3
 ```
 
-> **Not — Multipart:** büyük yüklemelerde tarayıcı, presigned PUT URL'leriyle parçaları **doğrudan** S3/MinIO'ya gönderir (kesikli çizgi); backend yalnızca URL imzalar ve son manifesti onaylar. Bu, çift bant genişliği maliyetini ve FastAPI istek boyutu limitini ortadan kaldırır.
+For large uploads the browser sends parts directly to S3/MinIO via presigned PUT URLs
+(dashed line); the backend only signs URLs and finalizes the manifest. This removes the
+double-bandwidth cost and the FastAPI request-size limit.
 
 ### Request Flows
 
@@ -112,7 +118,7 @@ sequenceDiagram
     participant S3 as S3 / MinIO
     B->>API: GET /api/v1/images/{bucket}/{key}
     API->>P: can_read(user, bucket)?
-    P-->>API: ✔ allowed
+    P-->>API: allowed
     API->>S3: stream_object()
     S3-->>API: bytes + content-type
     API-->>B: 200 image/* (MIME allow-listed, cached)
@@ -126,26 +132,27 @@ sequenceDiagram
     participant API as s3BEAR
     participant LLM as LLM Provider
     participant S3 as S3 / MinIO (private)
-    U->>API: POST /api/v1/share/{bucket}/{key}
-    API-->>U: { url: https://.../public/{bucket}/{key} }
-    Note over U,LLM: URL'i LLM isteğine image source olarak ekle
-    LLM->>API: GET /api/v1/public/{bucket}/{key} (no auth)
+    U->>API: POST /api/v1/share/{bucket}/{key} { expires_in: "7d" }
+    API-->>U: { token, url: /public/s/{token}, expires_at }
+    Note over U,LLM: pass the URL to the LLM as an image source
+    LLM->>API: GET /api/v1/public/s/{token} (no auth)
+    API->>API: token valid and not expired/revoked?
     API->>S3: stream_object()
     S3-->>API: bytes
-    API-->>LLM: 200 inline (bucket private kalır)
+    API-->>LLM: 200 inline (bucket stays private; expired/revoked -> 410)
 ```
 
 ---
 
 ## Tech Stack
 
-| Katman | Teknoloji |
-|--------|-----------|
-| **Backend** | FastAPI · SQLAlchemy 2.0 (async) · Pydantic v2 · APScheduler · SlowAPI (rate limit) |
+| Layer | Technology |
+|-------|------------|
+| **Backend** | FastAPI · SQLAlchemy 2.0 (async) · Pydantic v2 · APScheduler · SlowAPI (rate limiting) · Pillow (image transforms) |
 | **Frontend** | React 18 · TypeScript · Ant Design 5 · Zustand · Vite |
-| **Database** | PostgreSQL (async `asyncpg` + sync driver for Alembic) |
-| **Auth** | Azure Entra ID (MSAL / OIDC) + JWT (HS256) + yerel hesaplar |
-| **Storage** | Herhangi bir S3-uyumlu backend (AWS S3, MinIO, Ceph, Wasabi …) |
+| **Database** | PostgreSQL (async `asyncpg` + a sync driver for Alembic) |
+| **Auth** | Azure Entra ID (MSAL / OIDC) + JWT (HS256) + local accounts |
+| **Storage** | Any S3-compatible backend (AWS S3, MinIO, Ceph, Wasabi, ...) |
 | **Deploy** | Docker Compose · Helm chart (OCI) · HPA · Nginx |
 
 ---
@@ -153,7 +160,7 @@ sequenceDiagram
 ## Quick Start (Docker Compose)
 
 ```bash
-cp .env.example .env   # kimlik bilgilerini doldur
+cp .env.example .env   # fill in your credentials
 docker compose -f docker-compose.dev.yml up -d
 ```
 
@@ -165,25 +172,25 @@ docker compose -f docker-compose.dev.yml up -d
 | MinIO Console | http://localhost:9001   |
 | PostgreSQL    | localhost:5432          |
 
-Varsayılan admin: `admin@admin.com` / `admin` — **üretimde mutlaka değiştirin.**
+Default admin: `admin@admin.com` / `admin` — **change this in production.**
 
-> Ayrıntılı kurulum, migration ve CORS ayarları için → **[HOW-TO.md](HOW-TO.md)**
+For detailed setup, migrations, and CORS configuration, see **[HOW-TO.md](HOW-TO.md)**.
 
 ---
 
 ## Deployment
 
-Tüm imajlar Docker Hub'da yayınlanır:
+All images are published to Docker Hub:
 
 ```
-bearcomp/s3bear-backend:1.0.0    # Backend imajı
-bearcomp/s3bear-frontend:1.0.0   # Frontend imajı
+bearcomp/s3bear-backend:1.0.0    # Backend image
+bearcomp/s3bear-frontend:1.0.0   # Frontend image
 bearcomp/s3bear:1.0.0            # Helm chart (OCI)
 ```
 
 ### Kubernetes (Helm)
 
-**Seçenek 1 — Tam yerel yığın (gömülü PostgreSQL + MinIO)** — geliştirme/demo için:
+**Option 1 — Full local stack (embedded PostgreSQL + MinIO)**, for development or demos:
 
 ```bash
 helm install s3bear oci://registry-1.docker.io/bearcomp/s3bear --version 1.0.0 \
@@ -200,15 +207,15 @@ helm install s3bear oci://registry-1.docker.io/bearcomp/s3bear --version 1.0.0 \
   --set service.type=NodePort
 ```
 
-Port-forward ile erişim:
+Access via port-forward:
 
 ```bash
 kubectl port-forward -n s3bear svc/s3bear-frontend 3200:80
 kubectl port-forward -n s3bear svc/s3bear-backend 8200:8000
-# http://localhost:3200
+# open http://localhost:3200
 ```
 
-**Seçenek 2 — Harici PostgreSQL + Harici S3** — üretim için:
+**Option 2 — External PostgreSQL + external S3**, for production:
 
 ```bash
 helm install s3bear oci://registry-1.docker.io/bearcomp/s3bear --version 1.0.0 \
@@ -224,7 +231,7 @@ helm install s3bear oci://registry-1.docker.io/bearcomp/s3bear --version 1.0.0 \
   --set ingress.host="s3bear.yourdomain.com"
 ```
 
-**Seçenek 3 — Karışık (gömülü PostgreSQL + harici S3):**
+**Option 3 — Mixed (embedded PostgreSQL + external S3):**
 
 ```bash
 helm install s3bear oci://registry-1.docker.io/bearcomp/s3bear --version 1.0.0 \
@@ -241,25 +248,25 @@ helm install s3bear oci://registry-1.docker.io/bearcomp/s3bear --version 1.0.0 \
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `postgresql.enabled` | `false` | Gömülü PostgreSQL deploy et |
-| `minio.enabled` | `false` | Gömülü MinIO deploy et |
-| `secrets.secretKey` | `change-me...` | JWT imzalama anahtarı (min 32 karakter) |
+| `postgresql.enabled` | `false` | Deploy embedded PostgreSQL |
+| `minio.enabled` | `false` | Deploy embedded MinIO |
+| `secrets.secretKey` | `change-me...` | JWT signing key (min 32 chars) |
 | `secrets.databaseUrl` | `...postgres:5432/s3bear` | Async database URL |
-| `secrets.databaseUrlSync` | `...postgres:5432/s3bear` | Sync database URL (Alembic için) |
+| `secrets.databaseUrlSync` | `...postgres:5432/s3bear` | Sync database URL (for Alembic) |
 | `secrets.awsAccessKeyId` | `""` | S3 access key |
 | `secrets.awsSecretAccessKey` | `""` | S3 secret key |
-| `secrets.defaultAdminEmail` | `admin@admin.com` | İlk admin e-postası |
-| `secrets.defaultAdminPassword` | `admin` | İlk admin parolası |
-| `config.awsRegion` | `us-east-1` | AWS/S3 bölgesi |
-| `config.awsEndpointUrl` | `""` | S3 endpoint (MinIO/uyumlu için) |
-| `config.presignedUrlBase` | `""` | Tarayıcı yüklemeleri için harici S3 URL |
-| `config.allowedOrigins` | `["https://..."]` | CORS izinli originler |
-| `ingress.enabled` | `true` | Ingress etkinleştir |
-| `ingress.host` | `s3bear.example.com` | Ingress host adı |
-| `ingress.tls.enabled` | `false` | TLS etkinleştir |
-| `hpa.enabled` | `true` | HorizontalPodAutoscaler etkinleştir |
-| `auditLog.enabled` | `true` | Audit logging etkinleştir |
-| `service.type` | `ClusterIP` | Servis tipi (ClusterIP/NodePort/LoadBalancer) |
+| `secrets.defaultAdminEmail` | `admin@admin.com` | Initial admin email |
+| `secrets.defaultAdminPassword` | `admin` | Initial admin password |
+| `config.awsRegion` | `us-east-1` | AWS/S3 region |
+| `config.awsEndpointUrl` | `""` | S3 endpoint (for MinIO/compatible) |
+| `config.presignedUrlBase` | `""` | External S3 URL for browser uploads |
+| `config.allowedOrigins` | `["https://..."]` | CORS allowed origins |
+| `ingress.enabled` | `true` | Enable ingress |
+| `ingress.host` | `s3bear.example.com` | Ingress hostname |
+| `ingress.tls.enabled` | `false` | Enable TLS |
+| `hpa.enabled` | `true` | Enable HorizontalPodAutoscaler |
+| `auditLog.enabled` | `true` | Enable audit logging |
+| `service.type` | `ClusterIP` | Service type (ClusterIP/NodePort/LoadBalancer) |
 
 **Upgrade / Uninstall:**
 
@@ -275,70 +282,72 @@ helm uninstall s3bear --namespace s3bear && kubectl delete namespace s3bear
 
 ## Feature Reference
 
-| Özellik | Özet |
-|---------|------|
-| **Group-based permissions** | Glob desenli bucket izinleri; `list/read/write/delete`; gruplar arası birleşim. Admin tüm denetimleri baypas eder. |
-| **Multipart upload** | Presigned URL'lerle büyük dosyalar; tarayıcı → S3 doğrudan; yapılandırılabilir parça boyutu. |
-| **Authenticated image proxy** | `GET /images/{bucket}/{key}` — JWT + MIME allow-list + stream + browser cache. |
-| **Public share links** | Objeyi kalıcı public HTTPS URL'ine çevirir; bucket private kalır. LLM/CMS/partner için ideal. |
-| **Object copy / move** | S3 `CopyObject` ile server-side; cross-bucket & cross-prefix; move = copy + delete. |
-| **Cleanup policies** | Cron zamanlı otomatik silme; `older_than_days` + prefix filtresi; restart'a dayanıklı. |
-| **Audit logging** | Timestamp, actor, action, bucket, key, details, source IP; DB + opsiyonel JSONL. |
-| **Azure Entra SSO + import** | OIDC login + Entra'dan toplu kullanıcı içe aktarma; `oid` bazlı eşleme. |
-| **Bucket quotas** | Per-bucket ve global depolama kotası; aşımda HTTP 413. |
+| Feature | Summary |
+|---------|---------|
+| **Group-based permissions** | Glob-pattern bucket permissions across `list`/`read`/`write`/`delete`; effective permission is the union across a user's groups. Admins bypass all checks. |
+| **Multipart upload** | Presigned URLs for large files; browser uploads directly to S3; configurable part size. |
+| **Authenticated image proxy** | `GET /images/{bucket}/{key}` — JWT + MIME allow-list + streaming + browser caching. |
+| **On-the-fly image transformation** | `?w=&h=&format=&q=&fit=` resize/re-encode via Pillow, on both the image proxy and public share links; source size capped by `MAX_IMAGE_TRANSFORM_MB`. |
+| **Public share links** | Tokenized, expiring, revocable HTTPS URLs; the bucket stays private. Suited to LLMs, CMSs, and external partners. |
+| **Object copy / move (+ bulk)** | Server-side via S3 `CopyObject`; cross-bucket and cross-prefix; move = copy + delete. Bulk copy/move/delete via multi-select, tolerant of partial failures. |
+| **Cleanup policies** | Cron-scheduled automatic deletion with `older_than_days` and prefix filters; survives restarts. |
+| **Audit logging** | Timestamp, actor, action, bucket, key, details, source IP; database plus optional JSONL. |
+| **Azure Entra SSO + import** | OIDC login plus bulk user import from Entra; linked by `oid`. |
+| **Bucket quotas** | Per-bucket and global storage quotas; HTTP 413 on breach. |
 
-Her özelliğin gerçek-dünya kullanım senaryoları ve API örnekleri için → **[HOW-TO.md](HOW-TO.md)**
+Real-world use cases and API examples for each feature are in **[HOW-TO.md](HOW-TO.md)**.
 
 ---
 
 ## API Surface
 
-Tüm uçlar `/api/v1` altında. Interaktif OpenAPI dokümanı: `http://<backend>/docs`.
+All endpoints are under `/api/v1`. Interactive OpenAPI docs are served at `http://<backend>/docs`.
 
-| Router | Sorumluluk |
-|--------|-----------|
-| `auth` | Login (yerel + Entra), token refresh, callback |
-| `buckets` | Bucket CRUD, listeleme/gezinme, kota |
-| `objects` | Obje listeleme, silme, copy/move, presigned download |
+| Router | Responsibility |
+|--------|----------------|
+| `auth` | Login (local + Entra), token refresh, callback |
+| `buckets` | Bucket CRUD, listing/browsing, quotas |
+| `objects` | Object listing, deletion, copy/move, bulk copy/move, presigned download |
 | `upload` | Multipart init / complete, simple upload |
-| `images` | Kimlik doğrulamalı görsel proxy (MIME allow-list) |
-| `share` + `public` | Public share link üretimi + auth'suz sunum |
-| `policies` | Cleanup politikaları CRUD + manuel çalıştırma |
-| `users` / `groups` | Kullanıcı & grup yönetimi, izin atama, Entra import |
-| `settings` | Runtime ayarları (auth toggle, auto-provision, kotalar) |
-| `audit` | Denetim kaydı sorgulama (filtre + sayfalama) |
+| `images` | Authenticated image proxy with optional on-the-fly transforms |
+| `share` + `public` | Expiring/revocable tokenized public links (create/list/revoke) + unauthenticated serving at `/public/s/{token}` |
+| `policies` | Cleanup policy CRUD and manual runs |
+| `users` / `groups` | User and group management, permission assignment, Entra import |
+| `settings` | Runtime settings (auth toggles, auto-provisioning, quotas) |
+| `audit` | Audit-log queries (filtering + pagination) |
 
 ---
 
 ## Configuration
 
-Öne çıkan ortam değişkenleri (`.env.example` içinde tam liste):
+Key environment variables (see `.env.example` for the full list):
 
-| Değişken | Varsayılan | Amaç |
-|----------|-----------|------|
-| `SECRET_KEY` | — | JWT imzalama (min 32 karakter, zorunlu) |
-| `DATABASE_URL` / `DATABASE_URL_SYNC` | localhost | Async / sync (Alembic) DB bağlantıları |
-| `AWS_ENDPOINT_URL` | `""` | S3 endpoint (MinIO/uyumlu için) |
-| `PRESIGNED_URL_BASE` | `""` | Tarayıcının S3'e eriştiği harici URL (multipart için kritik) |
-| `MULTIPART_PART_SIZE_MB` | `10` | Multipart parça boyutu |
-| `PRESIGNED_URL_EXPIRY_SECONDS` | `1800` | Presigned URL ömrü |
-| `AZURE_TENANT_ID` / `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` | `""` | Entra SSO kimlik bilgileri |
-| `AUDIT_LOG_ENABLED` / `AUDIT_LOG_FILE_ENABLED` | `true` | Audit logging (DB / dosya) |
-| `AUDIT_LOG_RETENTION_DAYS` | `90` | Dosya audit saklama süresi |
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `SECRET_KEY` | — | JWT signing key (min 32 chars, required) |
+| `DATABASE_URL` / `DATABASE_URL_SYNC` | localhost | Async / sync (Alembic) database connections |
+| `AWS_ENDPOINT_URL` | `""` | S3 endpoint (for MinIO/compatible) |
+| `PRESIGNED_URL_BASE` | `""` | External URL the browser uses to reach S3 (critical for multipart) |
+| `MULTIPART_PART_SIZE_MB` | `10` | Multipart part size |
+| `PRESIGNED_URL_EXPIRY_SECONDS` | `1800` | Presigned URL lifetime |
+| `MAX_IMAGE_TRANSFORM_MB` | `25` | Source-size cap for on-the-fly image transforms (413 on breach) |
+| `AZURE_TENANT_ID` / `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` | `""` | Entra SSO credentials |
+| `AUDIT_LOG_ENABLED` / `AUDIT_LOG_FILE_ENABLED` | `true` | Audit logging (database / file) |
+| `AUDIT_LOG_RETENTION_DAYS` | `90` | File audit retention |
 
 ---
 
 ## Roadmap
 
-Geliştirme için değerlendirilen özellikler → **[docs/ROADMAP.md](docs/ROADMAP.md)**
+Planned and proposed features are tracked in **[docs/ROADMAP.md](docs/ROADMAP.md)**.
 
 ---
 
 ## Documentation
 
-- **[HOW-TO.md](HOW-TO.md)** — özellik-özellik teknik rehber, kullanım senaryoları, sorun giderme
-- **[docs/ROADMAP.md](docs/ROADMAP.md)** — planlanan / önerilen özellikler
-- **OpenAPI** — `http://<backend>/docs` (Swagger UI) · `http://<backend>/redoc`
+- **[HOW-TO.md](HOW-TO.md)** — feature-by-feature technical guide, use cases, and troubleshooting
+- **[docs/ROADMAP.md](docs/ROADMAP.md)** — planned and proposed features
+- **OpenAPI** — `http://<backend>/docs` (Swagger UI) and `http://<backend>/redoc`
 
 ---
 

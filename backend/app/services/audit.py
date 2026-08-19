@@ -25,6 +25,8 @@ PERMISSION_CHANGE = "permission_change"
 COPY = "copy"
 MOVE = "move"
 CLEANUP = "cleanup"
+SHARE_CREATE = "share_create"
+SHARE_REVOKE = "share_revoke"
 
 
 async def _write_audit_to_file(

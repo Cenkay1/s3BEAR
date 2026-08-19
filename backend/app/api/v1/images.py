@@ -1,9 +1,10 @@
 from fnmatch import fnmatch
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 
 from app.api.deps import get_current_user
+from app.api.v1.image_utils import parse_or_400, render_transformed
 from app.models.user import User
 from app.services import s3 as s3_service
 
@@ -33,8 +34,17 @@ async def proxy_image(
     bucket_name: str,
     object_key: str,
     current_user: Annotated[User, Depends(get_current_user)],
+    w: int | None = Query(None, ge=1, description="Resize width (px)"),
+    h: int | None = Query(None, ge=1, description="Resize height (px)"),
+    fmt: str | None = Query(None, alias="format", description="webp | jpeg | png"),
+    q: int | None = Query(None, ge=1, le=100, description="Quality 1-100 (webp/jpeg)"),
+    fit: str | None = Query(None, description="contain (default) | cover"),
 ):
     _check_read(current_user, bucket_name)
+
+    spec = parse_or_400(w, h, fmt, q, fit)
+    if spec is not None:
+        return await render_transformed(bucket_name, object_key, spec)
 
     try:
         generator, content_type, content_length = await s3_service.stream_object(

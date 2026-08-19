@@ -10,18 +10,19 @@ import {
   Typography,
 } from 'antd'
 import {
-  CopyOutlined,
   DeleteOutlined,
   DragOutlined,
   FileImageOutlined,
   FileOutlined,
   FolderOutlined,
+  LinkOutlined,
   ScissorOutlined,
   UploadOutlined,
 } from '@ant-design/icons'
 import { BrowseResult, bucketsApi, S3Object } from '../../api/buckets'
 import UploadButton from '../UploadButton'
 import CopyMoveModal from '../CopyMoveModal'
+import ShareModal from '../ShareModal'
 import dayjs from 'dayjs'
 
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.avif']
@@ -36,10 +37,6 @@ function formatBytes(bytes: number) {
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`
-}
-
-function getPublicUrl(bucket: string, key: string) {
-  return `${window.location.origin}/api/v1/public/${bucket}/${key}`
 }
 
 interface BucketBrowserProps {
@@ -57,8 +54,13 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
   const [copyMoveModal, setCopyMoveModal] = useState<{
     visible: boolean
     mode: 'copy' | 'move'
-    sourceKey: string
-  }>({ visible: false, mode: 'copy', sourceKey: '' })
+    sourceKey?: string
+    keys?: string[]
+  }>({ visible: false, mode: 'copy' })
+  const [shareModal, setShareModal] = useState<{ visible: boolean; key: string }>({
+    visible: false,
+    key: '',
+  })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -87,12 +89,8 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
     }
   }
 
-  const handleCopyUrl = (key: string) => {
-    const url = getPublicUrl(bucket, key)
-    navigator.clipboard.writeText(url).then(
-      () => message.success('URL copied'),
-      () => message.error('Failed to copy'),
-    )
+  const handleBulkCopyMove = (mode: 'copy' | 'move') => {
+    setCopyMoveModal({ visible: true, mode, keys: selectedKeys })
   }
 
   const breadcrumbParts = prefix.split('/').filter(Boolean)
@@ -117,7 +115,6 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
           )
         }
         const name = record.key.replace(prefix, '')
-        const url = getPublicUrl(bucket, record.key)
         const isImg = isImage(record.key)
         return (
           <Space size={8}>
@@ -125,16 +122,7 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
               ? <FileImageOutlined style={{ color: '#83a598', fontSize: 13 }} />
               : <FileOutlined style={{ color: '#504945', fontSize: 13 }} />
             }
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ ...monoStyle, color: '#d5c4a1', textDecoration: 'none' }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#fabd2f')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#d5c4a1')}
-            >
-              {name}
-            </a>
+            <span style={{ ...monoStyle, color: '#d5c4a1' }}>{name}</span>
           </Space>
         )
       },
@@ -165,12 +153,12 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
         if (record.isFolder) return null
         return (
           <Space size={0}>
-            <Tooltip title="copy url">
+            <Tooltip title="share link">
               <Button
                 type="text"
                 size="small"
-                icon={<CopyOutlined />}
-                onClick={() => handleCopyUrl(record.key)}
+                icon={<LinkOutlined />}
+                onClick={() => setShareModal({ visible: true, key: record.key })}
                 style={{ color: '#504945', opacity: 0.7 }}
               />
             </Tooltip>
@@ -267,6 +255,26 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
           ]}
         />
         <Space size={6}>
+          {canWrite && selectedKeys.length > 0 && (
+            <Button
+              icon={<DragOutlined />}
+              size="small"
+              onClick={() => handleBulkCopyMove('copy')}
+              style={{ fontFamily: "'Fira Code', monospace", fontSize: 11 }}
+            >
+              cp ({selectedKeys.length})
+            </Button>
+          )}
+          {canWrite && canDelete && selectedKeys.length > 0 && (
+            <Button
+              icon={<ScissorOutlined />}
+              size="small"
+              onClick={() => handleBulkCopyMove('move')}
+              style={{ fontFamily: "'Fira Code', monospace", fontSize: 11 }}
+            >
+              mv ({selectedKeys.length})
+            </Button>
+          )}
           {canDelete && selectedKeys.length > 0 && (
             <Popconfirm
               title={`Delete ${selectedKeys.length} object(s)?`}
@@ -318,11 +326,20 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
         mode={copyMoveModal.mode}
         sourceBucket={bucket}
         sourceKey={copyMoveModal.sourceKey}
+        keys={copyMoveModal.keys}
         onClose={() => setCopyMoveModal((prev) => ({ ...prev, visible: false }))}
         onSuccess={() => {
           setCopyMoveModal((prev) => ({ ...prev, visible: false }))
+          setSelectedKeys([])
           load()
         }}
+      />
+
+      <ShareModal
+        bucket={bucket}
+        objectKey={shareModal.key}
+        visible={shareModal.visible}
+        onClose={() => setShareModal({ visible: false, key: '' })}
       />
     </div>
   )
