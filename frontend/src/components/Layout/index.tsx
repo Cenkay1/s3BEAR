@@ -2,6 +2,7 @@ import React from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Avatar, Dropdown, Layout, Menu } from 'antd'
 import {
+  ApiOutlined,
   AuditOutlined,
   DatabaseOutlined,
   LinkOutlined,
@@ -15,7 +16,7 @@ import { useAuthStore } from '../../store/auth'
 
 const { Sider, Content } = Layout
 
-const NAV_KEYS = ['buckets', 'shares', 'users', 'groups', 'policies', 'audit', 'settings'] as const
+const NAV_KEYS = ['buckets', 'shares', 'tokens', 'users', 'groups', 'policies', 'audit', 'settings'] as const
 
 function resolveSelectedKey(pathname: string): string {
   return NAV_KEYS.find((key) => pathname.startsWith(`/${key}`)) ?? 'buckets'
@@ -31,6 +32,7 @@ export default function AppLayout() {
   const menuItems = [
     { key: 'buckets', icon: <DatabaseOutlined />, label: <Link to="/buckets">Buckets</Link> },
     { key: 'shares', icon: <LinkOutlined />, label: <Link to="/shares">Shares</Link> },
+    { key: 'tokens', icon: <ApiOutlined />, label: <Link to="/tokens">API Tokens</Link> },
     ...(user?.is_admin
       ? [
           { key: 'users', icon: <UserOutlined />, label: <Link to="/users">Users</Link> },

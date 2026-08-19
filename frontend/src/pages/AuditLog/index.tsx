@@ -17,12 +17,14 @@ const ACTION_COLORS: Record<string, string> = {
   cleanup: 'lime',
   share_create: 'green',
   share_revoke: 'red',
+  token_create: 'green',
+  token_revoke: 'red',
 }
 
 const ACTION_OPTIONS = [
   'upload', 'delete', 'download', 'create_bucket', 'delete_bucket',
   'user_create', 'user_delete', 'permission_change', 'copy', 'move', 'cleanup',
-  'share_create', 'share_revoke',
+  'share_create', 'share_revoke', 'token_create', 'token_revoke',
 ]
 
 export default function AuditLogPage() {

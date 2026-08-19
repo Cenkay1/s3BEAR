@@ -7,6 +7,7 @@ import LoginPage from './pages/Login'
 import AuthCallbackPage from './pages/Login/Callback'
 import BucketsPage from './pages/Buckets'
 import SharesPage from './pages/Shares'
+import TokensPage from './pages/Tokens'
 import UsersPage from './pages/Users'
 import GroupsPage from './pages/Groups'
 import PoliciesPage from './pages/Policies'
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="buckets" element={<BucketsPage />} />
           <Route path="buckets/:bucketName" element={<BucketsPage />} />
           <Route path="shares" element={<SharesPage />} />
+          <Route path="tokens" element={<TokensPage />} />
           <Route
             path="users"
             element={

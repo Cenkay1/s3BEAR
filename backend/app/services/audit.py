@@ -27,6 +27,8 @@ MOVE = "move"
 CLEANUP = "cleanup"
 SHARE_CREATE = "share_create"
 SHARE_REVOKE = "share_revoke"
+TOKEN_CREATE = "token_create"
+TOKEN_REVOKE = "token_revoke"
 
 
 async def _write_audit_to_file(

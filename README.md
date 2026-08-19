@@ -61,6 +61,7 @@ enforcing permission checks, audit logging, and quota limits.
 - **Scheduled cleanup policies** — cron-based automatic object deletion, resilient across restarts (APScheduler + PostgreSQL job store).
 - **Audit logging** — every state-changing operation is recorded to the database (and optionally to JSONL files).
 - **Azure Entra SSO** — MSAL/OIDC login and user import, with a local-account fallback.
+- **Personal access tokens** — revocable, optionally expiring API tokens for scripts and CI; act as the owning user and work on every endpoint.
 - **Bucket quotas** — per-bucket and global storage quotas, enforced with HTTP 413.
 
 ---
@@ -151,7 +152,7 @@ sequenceDiagram
 | **Backend** | FastAPI · SQLAlchemy 2.0 (async) · Pydantic v2 · APScheduler · SlowAPI (rate limiting) · Pillow (image transforms) |
 | **Frontend** | React 18 · TypeScript · Ant Design 5 · Zustand · Vite |
 | **Database** | PostgreSQL (async `asyncpg` + a sync driver for Alembic) |
-| **Auth** | Azure Entra ID (MSAL / OIDC) + JWT (HS256) + local accounts |
+| **Auth** | Azure Entra ID (MSAL / OIDC) + JWT (HS256) + local accounts + personal access tokens |
 | **Storage** | Any S3-compatible backend (AWS S3, MinIO, Ceph, Wasabi, ...) |
 | **Deploy** | Docker Compose · Helm chart (OCI) · HPA · Nginx |
 
@@ -306,6 +307,7 @@ All endpoints are under `/api/v1`. Interactive OpenAPI docs are served at `http:
 | Router | Responsibility |
 |--------|----------------|
 | `auth` | Login (local + Entra), token refresh, callback |
+| `tokens` | Personal access token (PAT) create/list/revoke |
 | `buckets` | Bucket CRUD, listing/browsing, quotas |
 | `objects` | Object listing, deletion, copy/move, bulk copy/move, presigned download |
 | `upload` | Multipart init / complete, simple upload |
