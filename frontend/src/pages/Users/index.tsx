@@ -189,7 +189,7 @@ export default function UsersPage() {
 
   const groupSelector = (
     <div style={{ marginBottom: 16 }}>
-      <Typography.Text style={{ fontSize: 12, color: '#928374', fontFamily: "'Fira Code', monospace" }}>
+      <Typography.Text style={{ fontSize: 12, color: '#94A3B8', fontFamily: "'Fira Code', monospace" }}>
         assign to groups
       </Typography.Text>
       <Select
@@ -207,11 +207,10 @@ export default function UsersPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <div style={{ color: '#504945', fontSize: 11, fontFamily: "'Fira Code', monospace", letterSpacing: '0.06em', marginBottom: 4 }}>// admin / users</div>
-          <Typography.Title level={3} style={{ margin: 0, color: '#ebdbb2', fontWeight: 700, fontSize: 22, fontFamily: "'Fira Sans', sans-serif" }}>Users</Typography.Title>
-          <div style={{ color: '#928374', fontSize: 12, marginTop: 2, fontFamily: "'Fira Code', monospace" }}>{users.length} user{users.length !== 1 ? 's' : ''}</div>
+          <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 22, fontFamily: "'Inter', sans-serif" }}>Users</Typography.Title>
+          <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2, fontFamily: "'Fira Code', monospace" }}>{users.length} user{users.length !== 1 ? 's' : ''}</div>
         </div>
-        <Button icon={<PlusOutlined />} type="primary" onClick={openCreate} style={{ fontFamily: "'Fira Code', monospace", fontSize: 12, height: 36 }}>+ new user</Button>
+        <Button icon={<PlusOutlined />} type="primary" onClick={openCreate} style={{ fontWeight: 600, height: 40 }}>Add User</Button>
       </div>
       <Table rowKey="id" columns={columns} dataSource={users} loading={loading} />
 

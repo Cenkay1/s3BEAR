@@ -10,31 +10,75 @@ from app.core.config import settings
 
 DEFAULT_CONTENT_TYPE = "application/octet-stream"
 
+# Runtime S3 connection config. When None, the env-var config is used (default).
+# When an admin saves a connection via Settings, it is loaded here and takes
+# precedence over the environment. Shape: {access_key, secret_key, region,
+# endpoint, presigned_base}.
+_runtime_cfg: dict | None = None
 
-def _make_client():
-    kwargs = {
-        "aws_access_key_id": settings.AWS_ACCESS_KEY_ID,
-        "aws_secret_access_key": settings.AWS_SECRET_ACCESS_KEY,
-        "region_name": settings.AWS_REGION,
+
+def set_runtime_config(cfg: dict | None) -> None:
+    """Install (or clear, with None) the active S3 connection config."""
+    global _runtime_cfg
+    _runtime_cfg = cfg
+
+
+def has_runtime_config() -> bool:
+    return _runtime_cfg is not None
+
+
+def _cfg() -> dict:
+    """Resolve the effective S3 config: runtime config if set, else env vars."""
+    if _runtime_cfg is not None:
+        c = _runtime_cfg
+        return {
+            "access_key": c.get("access_key") or settings.AWS_ACCESS_KEY_ID,
+            "secret_key": c.get("secret_key") or settings.AWS_SECRET_ACCESS_KEY,
+            "region": c.get("region") or settings.AWS_REGION,
+            "endpoint": c.get("endpoint") or "",
+            "presigned_base": c.get("presigned_base") or "",
+        }
+    return {
+        "access_key": settings.AWS_ACCESS_KEY_ID,
+        "secret_key": settings.AWS_SECRET_ACCESS_KEY,
+        "region": settings.AWS_REGION,
+        "endpoint": settings.AWS_ENDPOINT_URL,
+        "presigned_base": settings.PRESIGNED_URL_BASE,
     }
-    if settings.AWS_ENDPOINT_URL:
-        kwargs["endpoint_url"] = settings.AWS_ENDPOINT_URL
+
+
+def _make_client(cfg: dict | None = None):
+    c = cfg or _cfg()
+    kwargs = {
+        "aws_access_key_id": c["access_key"],
+        "aws_secret_access_key": c["secret_key"],
+        "region_name": c["region"],
+    }
+    if c["endpoint"]:
+        kwargs["endpoint_url"] = c["endpoint"]
     return boto3.client("s3", **kwargs)
 
 
 def _make_presign_client():
     """Client that uses the external-facing URL and SigV4 for presigned URL generation.
     SigV4 is required — MinIO rejects SigV2 presigned URLs for multipart uploads."""
-    endpoint = settings.PRESIGNED_URL_BASE or settings.AWS_ENDPOINT_URL
+    c = _cfg()
+    endpoint = c["presigned_base"] or c["endpoint"]
     kwargs = {
-        "aws_access_key_id": settings.AWS_ACCESS_KEY_ID,
-        "aws_secret_access_key": settings.AWS_SECRET_ACCESS_KEY,
-        "region_name": settings.AWS_REGION,
+        "aws_access_key_id": c["access_key"],
+        "aws_secret_access_key": c["secret_key"],
+        "region_name": c["region"],
         "config": Config(signature_version="s3v4"),
     }
     if endpoint:
         kwargs["endpoint_url"] = endpoint
     return boto3.client("s3", **kwargs)
+
+
+async def test_config(cfg: dict) -> None:
+    """Validate an S3 config by attempting a list_buckets. Raises on failure."""
+    client = _make_client(cfg)
+    await _run_sync(client.list_buckets)
 
 
 def _run_sync(func, *args, **kwargs):

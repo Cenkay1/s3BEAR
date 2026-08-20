@@ -63,7 +63,7 @@ export default function AuditLogPage() {
       key: 'created_at',
       width: 160,
       render: (v: string) => (
-        <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: '#928374' }}>
+        <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: '#94A3B8' }}>
           {dayjs(v).format('YYYY-MM-DD HH:mm:ss')}
         </span>
       ),
@@ -96,7 +96,7 @@ export default function AuditLogPage() {
       width: 150,
       render: (v: string | null) => v ? (
         <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 12 }}>{v}</span>
-      ) : <span style={{ color: '#504945' }}>—</span>,
+      ) : <span style={{ color: '#64748B' }}>—</span>,
     },
     {
       title: 'object',
@@ -104,8 +104,8 @@ export default function AuditLogPage() {
       key: 'object_key',
       ellipsis: true,
       render: (v: string | null) => v ? (
-        <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: '#d5c4a1' }}>{v}</span>
-      ) : <span style={{ color: '#504945' }}>—</span>,
+        <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: '#CBD5E1' }}>{v}</span>
+      ) : <span style={{ color: '#64748B' }}>—</span>,
     },
     {
       title: 'ip',
@@ -113,7 +113,7 @@ export default function AuditLogPage() {
       key: 'ip_address',
       width: 130,
       render: (v: string | null) => (
-        <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: '#504945' }}>{v || '—'}</span>
+        <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: '#64748B' }}>{v || '—'}</span>
       ),
     },
   ]
@@ -121,9 +121,8 @@ export default function AuditLogPage() {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <div style={{ color: '#504945', fontSize: 11, fontFamily: "'Fira Code', monospace", letterSpacing: '0.06em', marginBottom: 4 }}>// admin / audit</div>
-        <Typography.Title level={3} style={{ margin: 0, color: '#ebdbb2', fontWeight: 700, fontSize: 22, fontFamily: "'Fira Sans', sans-serif" }}>Audit Log</Typography.Title>
-        <div style={{ color: '#928374', fontSize: 12, marginTop: 2, fontFamily: "'Fira Code', monospace" }}>{total} event{total !== 1 ? 's' : ''}</div>
+        <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 22, fontFamily: "'Inter', sans-serif" }}>Audit Log</Typography.Title>
+        <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2, fontFamily: "'Fira Code', monospace" }}>{total} event{total !== 1 ? 's' : ''}</div>
       </div>
 
       {/* Filters */}
@@ -174,7 +173,7 @@ export default function AuditLogPage() {
         }}
         expandable={{
           expandedRowRender: (record) => record.details ? (
-            <pre style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: '#928374', margin: 0 }}>
+            <pre style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: '#94A3B8', margin: 0 }}>
               {JSON.stringify(record.details, null, 2)}
             </pre>
           ) : null,

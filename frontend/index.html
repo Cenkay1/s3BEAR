@@ -3,31 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/logo.png" />
     <title>s3BEAR</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
     <style>
       :root {
-        --void:         #1d2021;
-        --surface:      #282828;
-        --elevated:     #32302f;
-        --overlay:      #3c3836;
-        --border:       #3c3836;
-        --border-sub:   #2a2827;
-        --amber:        #fabd2f;
-        --amber-bright: #ffd561;
-        --amber-glow:   rgba(250,189,47,0.12);
-        --amber-shadow: rgba(250,189,47,0.25);
-        --orange:       #fe8019;
-        --green:        #b8bb26;
-        --aqua:         #8ec07c;
-        --blue:         #83a598;
-        --red:          #fb4934;
-        --text:         #ebdbb2;
-        --text-muted:   #928374;
-        --text-faint:   #504945;
+        --bg:            #0B0F17;
+        --surface:       #121821;
+        --elevated:      #1A2230;
+        --overlay:       #232C3A;
+        --border:        #232C3A;
+        --border-sub:    #1A2230;
+        --primary:       #3B82F6;
+        --primary-hover: #2563EB;
+        --primary-bright:#60A5FA;
+        --primary-glow:  rgba(59,130,246,0.12);
+        --primary-shadow:rgba(59,130,246,0.28);
+        --orange:        #F59E0B;
+        --green:         #22C55E;
+        --aqua:          #38BDF8;
+        --blue:          #3B82F6;
+        --red:           #EF4444;
+        --text:          #E6EDF3;
+        --text-muted:    #94A3B8;
+        --text-faint:    #64748B;
       }
 
       *, *::before, *::after { box-sizing: border-box; }
@@ -36,25 +37,26 @@
         height: 100%;
         margin: 0;
         padding: 0;
-        font-family: 'Fira Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        background: var(--void);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--bg);
         color: var(--text);
+        -webkit-font-smoothing: antialiased;
       }
 
       /* Subtle grid background on body */
       body {
         background-image:
-          linear-gradient(rgba(250,189,47,0.025) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(250,189,47,0.025) 1px, transparent 1px);
+          linear-gradient(rgba(59,130,246,0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(59,130,246,0.02) 1px, transparent 1px);
         background-size: 48px 48px;
-        background-color: var(--void);
+        background-color: var(--bg);
       }
 
       /* Scrollbar */
-      ::-webkit-scrollbar { width: 5px; height: 5px; }
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: var(--overlay); border-radius: 3px; }
-      ::-webkit-scrollbar-thumb:hover { background: var(--amber); }
+      ::-webkit-scrollbar-thumb { background: var(--overlay); border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
       /* Page load fade-in */
       @keyframes fadeUp {
@@ -66,8 +68,8 @@
         to   { opacity: 1; }
       }
       @keyframes glowPulse {
-        0%, 100% { box-shadow: 0 0 12px var(--amber-shadow); }
-        50%       { box-shadow: 0 0 24px var(--amber-shadow), 0 0 48px rgba(250,189,47,0.1); }
+        0%, 100% { box-shadow: 0 0 12px var(--primary-shadow); }
+        50%       { box-shadow: 0 0 24px var(--primary-shadow), 0 0 48px rgba(59,130,246,0.1); }
       }
 
       .animate-fade-up {
@@ -88,10 +90,10 @@
       /* Ant Design overrides */
       .ant-table-wrapper .ant-table {
         background: transparent !important;
-        font-family: 'Fira Sans', sans-serif;
+        font-family: 'Inter', sans-serif;
       }
       .ant-table-wrapper .ant-table-thead > tr > th {
-        background: var(--void) !important;
+        background: transparent !important;
         color: var(--text-muted) !important;
         font-size: 11px !important;
         font-weight: 600 !important;
@@ -103,34 +105,39 @@
         border-bottom: 1px solid var(--border-sub) !important;
       }
       .ant-table-wrapper .ant-table-tbody > tr:hover > td {
-        background: var(--amber-glow) !important;
+        background: var(--primary-glow) !important;
       }
       .ant-menu-dark { background: transparent !important; }
       .ant-menu-dark .ant-menu-item-selected {
-        background: var(--amber-glow) !important;
-        border-left: 2px solid var(--amber) !important;
+        background: var(--primary-glow) !important;
+        border-left: 2px solid var(--primary) !important;
       }
       .ant-menu-dark .ant-menu-item-selected a,
       .ant-menu-dark .ant-menu-item-selected .anticon {
-        color: var(--amber) !important;
+        color: var(--primary-bright) !important;
       }
       .ant-btn-primary {
-        background: var(--amber) !important;
-        border-color: var(--amber) !important;
-        color: var(--void) !important;
+        background: var(--primary) !important;
+        border-color: var(--primary) !important;
+        color: #fff !important;
         font-weight: 600 !important;
       }
       .ant-btn-primary:hover {
-        background: var(--amber-bright) !important;
-        border-color: var(--amber-bright) !important;
+        background: var(--primary-hover) !important;
+        border-color: var(--primary-hover) !important;
       }
-      .ant-tabs-ink-bar { background: var(--amber) !important; }
-      .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--amber) !important; }
-      .ant-progress-bg { background: var(--amber) !important; }
+      .ant-tabs-ink-bar { background: var(--primary) !important; }
+      .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--primary-bright) !important; }
+      .ant-progress-bg { background: var(--primary) !important; }
       .ant-statistic-content { color: var(--text) !important; font-family: 'Fira Code', monospace !important; }
       .ant-statistic-title { color: var(--text-muted) !important; font-size: 11px !important; text-transform: uppercase; letter-spacing: 0.06em; }
       /* File size / monospace values */
       .mono { font-family: 'Fira Code', monospace !important; font-size: 12px; }
+
+      /* Hide login hero panel on narrow screens */
+      @media (max-width: 900px) {
+        .login-hero { display: none !important; }
+      }
     </style>
   </head>
   <body>

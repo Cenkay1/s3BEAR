@@ -18,7 +18,7 @@ import { groupsApi, GroupRead, usersApi, UserRead } from '../../api/admin'
 
 function PermissionCell({ group, onDeletePerm }: { group: GroupRead; onDeletePerm: (groupId: string, permId: string) => void }) {
   if (group.permissions.length === 0) {
-    return <span style={{ color: '#504945', fontFamily: "'Fira Code', monospace", fontSize: 11 }}>no permissions</span>
+    return <span style={{ color: '#64748B', fontFamily: "'Fira Code', monospace", fontSize: 11 }}>no permissions</span>
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -32,10 +32,10 @@ function PermissionCell({ group, onDeletePerm }: { group: GroupRead; onDeletePer
             background: 'rgba(255,255,255,0.03)',
             borderRadius: 4,
             padding: '4px 8px',
-            border: '1px solid #3c3836',
+            border: '1px solid #232C3A',
           }}
         >
-          <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: '#fabd2f', fontWeight: 600, minWidth: 80 }}>
+          <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: '#3B82F6', fontWeight: 600, minWidth: 80 }}>
             {p.bucket_pattern}
           </span>
           <span style={{ display: 'flex', gap: 4 }}>
@@ -159,12 +159,11 @@ export default function GroupsPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <div style={{ color: '#504945', fontSize: 11, fontFamily: "'Fira Code', monospace", letterSpacing: '0.06em', marginBottom: 4 }}>// admin / groups</div>
-          <Typography.Title level={3} style={{ margin: 0, color: '#ebdbb2', fontWeight: 700, fontSize: 22, fontFamily: "'Fira Sans', sans-serif" }}>Groups</Typography.Title>
-          <div style={{ color: '#928374', fontSize: 12, marginTop: 2, fontFamily: "'Fira Code', monospace" }}>{groups.length} group{groups.length !== 1 ? 's' : ''}</div>
+          <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 22, fontFamily: "'Inter', sans-serif" }}>Groups</Typography.Title>
+          <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2, fontFamily: "'Fira Code', monospace" }}>{groups.length} group{groups.length !== 1 ? 's' : ''}</div>
         </div>
-        <Button icon={<PlusOutlined />} type="primary" onClick={() => { groupForm.resetFields(); setGroupModal(true) }} style={{ fontFamily: "'Fira Code', monospace", fontSize: 12, height: 36 }}>
-          + new group
+        <Button icon={<PlusOutlined />} type="primary" onClick={() => { groupForm.resetFields(); setGroupModal(true) }} style={{ fontWeight: 600, height: 40 }}>
+          New Group
         </Button>
       </div>
       <Table rowKey="id" columns={columns} dataSource={groups} loading={loading} />

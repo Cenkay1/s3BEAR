@@ -110,11 +110,10 @@ export default function PoliciesPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <div style={{ color: '#504945', fontSize: 11, fontFamily: "'Fira Code', monospace", letterSpacing: '0.06em', marginBottom: 4 }}>// admin / policies</div>
-          <Typography.Title level={3} style={{ margin: 0, color: '#ebdbb2', fontWeight: 700, fontSize: 22, fontFamily: "'Fira Sans', sans-serif" }}>Cleanup Policies</Typography.Title>
-          <div style={{ color: '#928374', fontSize: 12, marginTop: 2, fontFamily: "'Fira Code', monospace" }}>{policies.length} polic{policies.length !== 1 ? 'ies' : 'y'}</div>
+          <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 22, fontFamily: "'Inter', sans-serif" }}>Cleanup Policies</Typography.Title>
+          <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2, fontFamily: "'Fira Code', monospace" }}>{policies.length} polic{policies.length !== 1 ? 'ies' : 'y'}</div>
         </div>
-        <Button icon={<PlusOutlined />} type="primary" onClick={openCreate} style={{ fontFamily: "'Fira Code', monospace", fontSize: 12, height: 36 }}>+ new policy</Button>
+        <Button icon={<PlusOutlined />} type="primary" onClick={openCreate} style={{ fontWeight: 600, height: 40 }}>New Policy</Button>
       </div>
       <Table rowKey="id" columns={columns} dataSource={policies} loading={loading} />
 

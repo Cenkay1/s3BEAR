@@ -6,14 +6,14 @@ import { msalInstance } from './api/msal'
 import App from './App'
 import 'antd/dist/reset.css'
 
-// Gruvbox Void Amber palette
-const VOID     = '#1d2021'
-const SURFACE  = '#282828'
-const ELEVATED = '#32302f'
-const BORDER   = '#3c3836'
-const AMBER    = '#fabd2f'
-const TEXT     = '#ebdbb2'
-const MUTED    = '#928374'
+// Slate / Blue palette
+const BG       = '#0B0F17'
+const SURFACE  = '#121821'
+const ELEVATED = '#1A2230'
+const BORDER   = '#232C3A'
+const PRIMARY  = '#3B82F6'
+const TEXT     = '#E6EDF3'
+const MUTED    = '#94A3B8'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -22,40 +22,40 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         theme={{
           algorithm: theme.darkAlgorithm,
           token: {
-            colorPrimary: AMBER,
+            colorPrimary: PRIMARY,
             colorBgBase: SURFACE,
             colorBgContainer: SURFACE,
             colorBgElevated: ELEVATED,
-            colorBgLayout: VOID,
+            colorBgLayout: BG,
             colorText: TEXT,
             colorTextSecondary: MUTED,
             colorBorder: BORDER,
-            colorBorderSecondary: '#2a2827',
-            borderRadius: 6,
-            fontFamily: "'Fira Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+            colorBorderSecondary: '#1A2230',
+            borderRadius: 10,
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
             fontSize: 14,
-            colorSuccess: '#b8bb26',
-            colorWarning: '#fe8019',
-            colorError: '#fb4934',
-            colorInfo: '#83a598',
-            colorTextPlaceholder: '#504945',
-            colorLink: AMBER,
-            colorLinkHover: '#ffd561',
+            colorSuccess: '#22C55E',
+            colorWarning: '#F59E0B',
+            colorError: '#EF4444',
+            colorInfo: PRIMARY,
+            colorTextPlaceholder: '#64748B',
+            colorLink: PRIMARY,
+            colorLinkHover: '#60A5FA',
           },
           components: {
             Layout: {
-              siderBg: VOID,
-              headerBg: VOID,
-              bodyBg: VOID,
+              siderBg: SURFACE,
+              headerBg: BG,
+              bodyBg: BG,
             },
             Menu: {
               darkItemBg: 'transparent',
               darkSubMenuItemBg: 'transparent',
-              darkItemSelectedBg: 'rgba(250,189,47,0.1)',
-              darkItemSelectedColor: AMBER,
-              darkItemHoverBg: 'rgba(250,189,47,0.06)',
+              darkItemSelectedBg: 'rgba(59,130,246,0.12)',
+              darkItemSelectedColor: '#60A5FA',
+              darkItemHoverBg: 'rgba(59,130,246,0.07)',
               darkItemHoverColor: TEXT,
-              itemBorderRadius: 4,
+              itemBorderRadius: 8,
             },
             Card: {
               colorBgContainer: SURFACE,
@@ -63,9 +63,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             },
             Table: {
               colorBgContainer: 'transparent',
-              headerBg: VOID,
-              rowHoverBg: 'rgba(250,189,47,0.05)',
-              borderColor: '#2a2827',
+              headerBg: 'transparent',
+              rowHoverBg: 'rgba(59,130,246,0.06)',
+              borderColor: '#1A2230',
             },
             Modal: {
               contentBg: SURFACE,
@@ -84,13 +84,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               colorBorder: BORDER,
             },
             Button: {
-              borderRadius: 5,
+              borderRadius: 8,
             },
             Tag: {
-              borderRadius: 4,
+              borderRadius: 6,
             },
             Progress: {
-              defaultColor: AMBER,
+              defaultColor: PRIMARY,
             },
             Statistic: {
               contentFontSize: 20,

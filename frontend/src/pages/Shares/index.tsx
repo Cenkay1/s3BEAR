@@ -61,7 +61,7 @@ export default function SharesPage() {
       dataIndex: 'object_key',
       key: 'object_key',
       ellipsis: true,
-      render: (v: string) => <span style={{ ...mono, fontSize: 11, color: '#d5c4a1' }}>{v}</span>,
+      render: (v: string) => <span style={{ ...mono, fontSize: 11, color: '#CBD5E1' }}>{v}</span>,
     },
     {
       title: 'created by',
@@ -77,7 +77,7 @@ export default function SharesPage() {
       key: 'expires_at',
       width: 150,
       render: (v: string | null) => (
-        <span style={{ ...mono, fontSize: 11, color: '#928374' }}>
+        <span style={{ ...mono, fontSize: 11, color: '#94A3B8' }}>
           {v ? dayjs(v).format('YYYY-MM-DD HH:mm') : 'never'}
         </span>
       ),
@@ -112,9 +112,8 @@ export default function SharesPage() {
     <div>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
-          <div style={{ color: '#504945', fontSize: 11, ...mono, letterSpacing: '0.06em', marginBottom: 4 }}>// share links</div>
-          <Typography.Title level={3} style={{ margin: 0, color: '#ebdbb2', fontWeight: 700, fontSize: 22, fontFamily: "'Fira Sans', sans-serif" }}>Shares</Typography.Title>
-          <div style={{ color: '#928374', fontSize: 12, marginTop: 2, ...mono }}>{data.length} link{data.length !== 1 ? 's' : ''}</div>
+          <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 22, fontFamily: "'Inter', sans-serif" }}>Shares</Typography.Title>
+          <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2, ...mono }}>{data.length} link{data.length !== 1 ? 's' : ''}</div>
         </div>
         <Button icon={<ReloadOutlined />} onClick={load}>Refresh</Button>
       </div>
