@@ -141,7 +141,7 @@ sequenceDiagram
     API->>API: token valid and not expired/revoked?
     API->>S3: stream_object()
     S3-->>API: bytes
-    API-->>LLM: 200 inline (bucket stays private; expired or revoked returns 410)
+    API-->>LLM: 200 inline, bucket stays private, expired or revoked returns 410
 ```
 
 ---
