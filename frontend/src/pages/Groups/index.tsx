@@ -6,7 +6,6 @@ import {
   Form,
   Input,
   message,
-  Modal,
   Popconfirm,
   Space,
   Table,
@@ -168,7 +167,8 @@ export default function GroupsPage() {
       </div>
       <Table rowKey="id" columns={columns} dataSource={groups} loading={loading} />
 
-      <Modal open={groupModal} title="New Group" onCancel={() => setGroupModal(false)} onOk={() => groupForm.submit()}>
+      <Drawer open={groupModal} title="New Group" onClose={() => setGroupModal(false)} width={460} destroyOnClose
+        extra={<Space><Button onClick={() => setGroupModal(false)}>Cancel</Button><Button type="primary" onClick={() => groupForm.submit()}>Save</Button></Space>}>
         <Form form={groupForm} layout="vertical" onFinish={handleCreateGroup}>
           <Form.Item name="name" label="Name" rules={[{ required: true }]}>
             <Input />
@@ -177,13 +177,15 @@ export default function GroupsPage() {
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>
-      </Modal>
+      </Drawer>
 
-      <Modal
+      <Drawer
         open={permModal}
         title={`Add Permission — ${selectedGroup?.name}`}
-        onCancel={() => setPermModal(false)}
-        onOk={() => permForm.submit()}
+        onClose={() => setPermModal(false)}
+        width={460}
+        destroyOnClose
+        extra={<Space><Button onClick={() => setPermModal(false)}>Cancel</Button><Button type="primary" onClick={() => permForm.submit()}>Save</Button></Space>}
       >
         <Form form={permForm} layout="vertical" onFinish={handleAddPermission} initialValues={{ can_list: false, can_read: false, can_write: false, can_delete: false }}>
           <Form.Item name="bucket_pattern" label="Bucket Pattern (glob)" rules={[{ required: true }]}>
@@ -194,7 +196,7 @@ export default function GroupsPage() {
           <Form.Item name="can_write" valuePropName="checked"><Checkbox>Write</Checkbox></Form.Item>
           <Form.Item name="can_delete" valuePropName="checked"><Checkbox>Delete</Checkbox></Form.Item>
         </Form>
-      </Modal>
+      </Drawer>
 
       <Drawer
         open={userDrawer}

@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import {
   Button,
+  Drawer,
   Form,
   Input,
   InputNumber,
   message,
-  Modal,
   Popconfirm,
   Select,
   Space,
@@ -117,12 +117,18 @@ export default function PoliciesPage() {
       </div>
       <Table rowKey="id" columns={columns} dataSource={policies} loading={loading} />
 
-      <Modal
+      <Drawer
         open={modalOpen}
         title={editPolicy ? 'Edit Policy' : 'New Policy'}
-        onCancel={() => setModalOpen(false)}
-        onOk={() => form.submit()}
-        width={560}
+        onClose={() => setModalOpen(false)}
+        width={460}
+        destroyOnClose
+        extra={
+          <Space>
+            <Button onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button type="primary" onClick={() => form.submit()}>Save</Button>
+          </Space>
+        }
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item name="name" label="Name" rules={[{ required: true }]}>
@@ -144,7 +150,7 @@ export default function PoliciesPage() {
             <Switch defaultChecked />
           </Form.Item>
         </Form>
-      </Modal>
+      </Drawer>
     </div>
   )
 }

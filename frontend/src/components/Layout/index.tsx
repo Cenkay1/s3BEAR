@@ -1,14 +1,12 @@
 import React from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Avatar, Dropdown, Layout, Menu, Tooltip } from 'antd'
+import { Avatar, Dropdown, Layout, Menu } from 'antd'
 import {
   ApiOutlined,
   AuditOutlined,
-  BellOutlined,
   DatabaseOutlined,
   LinkOutlined,
   LogoutOutlined,
-  QuestionCircleOutlined,
   SettingOutlined,
   TeamOutlined,
   ThunderboltOutlined,
@@ -17,7 +15,7 @@ import {
 } from '@ant-design/icons'
 import { useAuthStore } from '../../store/auth'
 
-const { Sider, Header, Content } = Layout
+const { Sider, Content } = Layout
 
 const NAV_KEYS = ['buckets', 'shares', 'tokens', 'users', 'groups', 'policies', 'webhooks', 'audit', 'settings'] as const
 
@@ -140,45 +138,7 @@ export default function AppLayout() {
       </Sider>
 
       <Layout style={{ marginLeft: SIDER_W, background: 'transparent', minHeight: '100vh' }}>
-        <Header
-          style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 50,
-            height: 60,
-            padding: '0 28px',
-            background: 'rgba(11,15,23,0.85)',
-            backdropFilter: 'blur(10px)',
-            borderBottom: '1px solid #1A2230',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            gap: 8,
-          }}
-        >
-          <Tooltip title="Documentation">
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display: 'flex', width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 8, color: '#94A3B8' }}
-            >
-              <QuestionCircleOutlined style={{ fontSize: 17 }} />
-            </a>
-          </Tooltip>
-          <Tooltip title="Notifications">
-            <span style={{ display: 'flex', width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 8, color: '#94A3B8', cursor: 'pointer' }}>
-              <BellOutlined style={{ fontSize: 17 }} />
-            </span>
-          </Tooltip>
-          <Dropdown menu={userMenu} placement="bottomRight" trigger={['click']}>
-            <Avatar size={34} style={{ background: '#3B82F6', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', marginLeft: 4 }}>
-              {initial}
-            </Avatar>
-          </Dropdown>
-        </Header>
-
-        <Content style={{ padding: '28px 32px', background: 'transparent' }} className="animate-fade-in">
+        <Content style={{ padding: '32px 36px', background: 'transparent' }} className="animate-fade-in">
           <Outlet />
         </Content>
       </Layout>

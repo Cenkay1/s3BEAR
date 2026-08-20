@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react'
 import {
   Button,
   Checkbox,
+  Drawer,
   Form,
   Input,
   List,
   message,
-  Modal,
   Popconfirm,
   Select,
   Space,
@@ -214,12 +214,14 @@ export default function UsersPage() {
       </div>
       <Table rowKey="id" columns={columns} dataSource={users} loading={loading} />
 
-      {/* Edit modal */}
-      <Modal
+      {/* Edit drawer */}
+      <Drawer
         open={modalOpen}
         title="Edit User"
-        onCancel={() => setModalOpen(false)}
-        onOk={() => form.submit()}
+        onClose={() => setModalOpen(false)}
+        width={440}
+        destroyOnClose
+        extra={<Space><Button onClick={() => setModalOpen(false)}>Cancel</Button><Button type="primary" onClick={() => form.submit()}>Save</Button></Space>}
       >
         <Form form={form} layout="vertical" onFinish={handleEditSubmit}>
           <Form.Item name="display_name" label="Display Name">
@@ -239,15 +241,15 @@ export default function UsersPage() {
             <Input.Password placeholder="Leave empty to keep unchanged" />
           </Form.Item>
         </Form>
-      </Modal>
+      </Drawer>
 
-      {/* Create / Import modal */}
-      <Modal
+      {/* Create / Import drawer */}
+      <Drawer
         open={createModalOpen}
         title="New User"
-        onCancel={() => setCreateModalOpen(false)}
-        footer={null}
-        width={620}
+        onClose={() => setCreateModalOpen(false)}
+        width={560}
+        destroyOnClose
       >
         {/* Mode toggle */}
         {entraActive && (
@@ -346,7 +348,7 @@ export default function UsersPage() {
             </Button>
           </Form>
         )}
-      </Modal>
+      </Drawer>
     </div>
   )
 }
