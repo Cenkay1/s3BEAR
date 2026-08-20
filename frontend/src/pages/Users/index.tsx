@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react'
 import {
   Button,
   Checkbox,
+  Drawer,
   Form,
   Input,
   List,
   message,
-  Modal,
   Popconfirm,
   Select,
   Space,
@@ -189,7 +189,7 @@ export default function UsersPage() {
 
   const groupSelector = (
     <div style={{ marginBottom: 16 }}>
-      <Typography.Text style={{ fontSize: 12, color: '#928374', fontFamily: "'Fira Code', monospace" }}>
+      <Typography.Text style={{ fontSize: 12, color: '#94A3B8', fontFamily: "'Fira Code', monospace" }}>
         assign to groups
       </Typography.Text>
       <Select
@@ -207,20 +207,21 @@ export default function UsersPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <div style={{ color: '#504945', fontSize: 11, fontFamily: "'Fira Code', monospace", letterSpacing: '0.06em', marginBottom: 4 }}>// admin / users</div>
-          <Typography.Title level={3} style={{ margin: 0, color: '#ebdbb2', fontWeight: 700, fontSize: 22, fontFamily: "'Fira Sans', sans-serif" }}>Users</Typography.Title>
-          <div style={{ color: '#928374', fontSize: 12, marginTop: 2, fontFamily: "'Fira Code', monospace" }}>{users.length} user{users.length !== 1 ? 's' : ''}</div>
+          <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 22, fontFamily: "'Inter', sans-serif" }}>Users</Typography.Title>
+          <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2, fontFamily: "'Fira Code', monospace" }}>{users.length} user{users.length !== 1 ? 's' : ''}</div>
         </div>
-        <Button icon={<PlusOutlined />} type="primary" onClick={openCreate} style={{ fontFamily: "'Fira Code', monospace", fontSize: 12, height: 36 }}>+ new user</Button>
+        <Button icon={<PlusOutlined />} type="primary" onClick={openCreate} style={{ fontWeight: 600, height: 40 }}>Add User</Button>
       </div>
       <Table rowKey="id" columns={columns} dataSource={users} loading={loading} />
 
-      {/* Edit modal */}
-      <Modal
+      {/* Edit drawer */}
+      <Drawer
         open={modalOpen}
         title="Edit User"
-        onCancel={() => setModalOpen(false)}
-        onOk={() => form.submit()}
+        onClose={() => setModalOpen(false)}
+        width={440}
+        destroyOnClose
+        extra={<Space><Button onClick={() => setModalOpen(false)}>Cancel</Button><Button type="primary" onClick={() => form.submit()}>Save</Button></Space>}
       >
         <Form form={form} layout="vertical" onFinish={handleEditSubmit}>
           <Form.Item name="display_name" label="Display Name">
@@ -240,15 +241,15 @@ export default function UsersPage() {
             <Input.Password placeholder="Leave empty to keep unchanged" />
           </Form.Item>
         </Form>
-      </Modal>
+      </Drawer>
 
-      {/* Create / Import modal */}
-      <Modal
+      {/* Create / Import drawer */}
+      <Drawer
         open={createModalOpen}
         title="New User"
-        onCancel={() => setCreateModalOpen(false)}
-        footer={null}
-        width={620}
+        onClose={() => setCreateModalOpen(false)}
+        width={560}
+        destroyOnClose
       >
         {/* Mode toggle */}
         {entraActive && (
@@ -347,7 +348,7 @@ export default function UsersPage() {
             </Button>
           </Form>
         )}
-      </Modal>
+      </Drawer>
     </div>
   )
 }

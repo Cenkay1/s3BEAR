@@ -1,5 +1,6 @@
+import json
 from typing import Annotated
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,13 +9,40 @@ from app.api.deps import get_db, require_admin
 from app.core.config import settings as env_settings
 from app.models.settings import AppSetting
 from app.models.user import User
-from app.schemas.settings import AuthConfig, AuthConfigUpdate, AzureAdConfig, AzureAdConfigUpdate
+from app.schemas.settings import (
+    AuthConfig, AuthConfigUpdate, AuthProvider, AuthProviderUpdate,
+    AzureAdConfig, AzureAdConfigUpdate, S3ConnectionConfig, S3ConnectionUpdate,
+)
 from app.services import s3 as s3_service
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 _AUTH_KEYS = ("enable_local_auth", "enable_azure_ad")
 _AZURE_KEYS = ("azure_tenant_id", "azure_client_id", "azure_client_secret", "azure_redirect_uri")
+_S3_KEYS = ("s3_provider", "s3_access_key_id", "s3_secret_access_key", "s3_region",
+            "s3_endpoint_url", "s3_presigned_base", "s3_use_ssl")
+
+# Generic auth providers (real login flow not wired yet — config storage only).
+_PROVIDER_DEFS = {
+    "github": {"name": "GitHub", "type": "oauth2", "fields": ["client_id", "callback_url"]},
+    "saml": {"name": "SAML", "type": "saml", "fields": ["entity_id", "sso_url", "certificate"]},
+}
+
+
+async def load_s3_connection(db: AsyncSession) -> dict | None:
+    """Build the runtime S3 config dict from DB, or None if not configured."""
+    rows = await _get_rows(db, _S3_KEYS)
+    if not rows.get("s3_access_key_id"):
+        return None
+    return {
+        "provider": rows.get("s3_provider", "aws"),
+        "access_key": rows.get("s3_access_key_id", ""),
+        "secret_key": rows.get("s3_secret_access_key", ""),
+        "region": rows.get("s3_region", "us-east-1"),
+        "endpoint": rows.get("s3_endpoint_url", ""),
+        "presigned_base": rows.get("s3_presigned_base", ""),
+        "use_ssl": rows.get("s3_use_ssl", "true") == "true",
+    }
 
 
 async def _get_rows(db: AsyncSession, keys: tuple) -> dict[str, str]:
@@ -168,3 +196,163 @@ async def update_bucket_quota(
         await _upsert(db, key, str(body.quota_gb))
     await db.flush()
     return {"bucket": bucket_name, "quota_gb": body.quota_gb}
+
+
+# ── S3 connection ─────────────────────────────────────────────────────────────
+
+async def _build_connection_response(db: AsyncSession) -> S3ConnectionConfig:
+    rows = await _get_rows(db, _S3_KEYS)
+    configured = bool(rows.get("s3_access_key_id"))
+    if configured:
+        return S3ConnectionConfig(
+            provider=rows.get("s3_provider", "aws"),
+            access_key_id=rows.get("s3_access_key_id", ""),
+            region=rows.get("s3_region", "us-east-1"),
+            endpoint_url=rows.get("s3_endpoint_url", ""),
+            presigned_base=rows.get("s3_presigned_base", ""),
+            use_ssl=rows.get("s3_use_ssl", "true") == "true",
+            has_secret=bool(rows.get("s3_secret_access_key")),
+            configured=True,
+            source="db",
+        )
+    # Fall back to env config (read-only view)
+    return S3ConnectionConfig(
+        provider="minio" if env_settings.AWS_ENDPOINT_URL else "aws",
+        access_key_id=env_settings.AWS_ACCESS_KEY_ID,
+        region=env_settings.AWS_REGION,
+        endpoint_url=env_settings.AWS_ENDPOINT_URL,
+        presigned_base=env_settings.PRESIGNED_URL_BASE,
+        use_ssl=True,
+        has_secret=bool(env_settings.AWS_SECRET_ACCESS_KEY),
+        configured=False,
+        source="env",
+    )
+
+
+@router.get("/storage/connection", response_model=S3ConnectionConfig)
+async def get_s3_connection(
+    _: Annotated[User, Depends(require_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    return await _build_connection_response(db)
+
+
+@router.put("/storage/connection", response_model=S3ConnectionConfig)
+async def update_s3_connection(
+    body: S3ConnectionUpdate,
+    _: Annotated[User, Depends(require_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    # Resolve the secret: use provided, else keep the existing stored one.
+    existing = await _get_rows(db, _S3_KEYS)
+    secret = body.secret_access_key if body.secret_access_key else existing.get("s3_secret_access_key", "")
+    if not secret:
+        raise HTTPException(status_code=400, detail="Secret access key is required")
+
+    cfg = {
+        "access_key": body.access_key_id,
+        "secret_key": secret,
+        "region": body.region,
+        "endpoint": body.endpoint_url,
+        "presigned_base": body.presigned_base,
+    }
+    # Validate before persisting so a bad credential never replaces a working one.
+    try:
+        await s3_service.test_config(cfg)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=f"Connection test failed: {str(e)[:200]}")
+
+    await _upsert(db, "s3_provider", body.provider)
+    await _upsert(db, "s3_access_key_id", body.access_key_id)
+    await _upsert(db, "s3_secret_access_key", secret)
+    await _upsert(db, "s3_region", body.region)
+    await _upsert(db, "s3_endpoint_url", body.endpoint_url)
+    await _upsert(db, "s3_presigned_base", body.presigned_base)
+    await _upsert(db, "s3_use_ssl", str(body.use_ssl).lower())
+    await db.flush()
+
+    s3_service.set_runtime_config(cfg)
+    return await _build_connection_response(db)
+
+
+@router.post("/storage/connection/test")
+async def test_s3_connection(
+    body: S3ConnectionUpdate,
+    _: Annotated[User, Depends(require_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    existing = await _get_rows(db, _S3_KEYS)
+    secret = body.secret_access_key if body.secret_access_key else existing.get("s3_secret_access_key", "")
+    if not secret:
+        raise HTTPException(status_code=400, detail="Secret access key is required")
+    cfg = {
+        "access_key": body.access_key_id, "secret_key": secret, "region": body.region,
+        "endpoint": body.endpoint_url, "presigned_base": body.presigned_base,
+    }
+    try:
+        await s3_service.test_config(cfg)
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e)[:200]}
+    return {"ok": True, "error": None}
+
+
+# ── Generic auth providers ────────────────────────────────────────────────────
+
+def _provider_state(raw: str | None) -> dict:
+    if not raw:
+        return {"enabled": False, "config": {}, "secret": ""}
+    try:
+        data = json.loads(raw)
+    except (ValueError, TypeError):
+        return {"enabled": False, "config": {}, "secret": ""}
+    return {
+        "enabled": bool(data.get("enabled")),
+        "config": data.get("config") or {},
+        "secret": data.get("secret") or "",
+    }
+
+
+@router.get("/auth/providers", response_model=list[AuthProvider])
+async def list_auth_providers(
+    _: Annotated[User, Depends(require_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    keys = tuple(f"authprovider:{pid}" for pid in _PROVIDER_DEFS)
+    rows = await _get_rows(db, keys)
+    result = []
+    for pid, defn in _PROVIDER_DEFS.items():
+        state = _provider_state(rows.get(f"authprovider:{pid}"))
+        result.append(AuthProvider(
+            id=pid, name=defn["name"], type=defn["type"],
+            enabled=state["enabled"],
+            configured=bool(state["config"]),
+            has_secret=bool(state["secret"]),
+            config=state["config"],
+        ))
+    return result
+
+
+@router.put("/auth/providers/{provider_id}", response_model=AuthProvider)
+async def update_auth_provider(
+    provider_id: str,
+    body: AuthProviderUpdate,
+    _: Annotated[User, Depends(require_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    defn = _PROVIDER_DEFS.get(provider_id)
+    if defn is None:
+        raise HTTPException(status_code=404, detail="Unknown provider")
+    key = f"authprovider:{provider_id}"
+    current = _provider_state(await _get_setting(db, key))
+    secret = body.secret if body.secret else current["secret"]
+    await _upsert(db, key, json.dumps({
+        "enabled": body.enabled,
+        "config": body.config,
+        "secret": secret,
+    }))
+    await db.flush()
+    return AuthProvider(
+        id=provider_id, name=defn["name"], type=defn["type"],
+        enabled=body.enabled, configured=bool(body.config), has_secret=bool(secret),
+        config=body.config,
+    )

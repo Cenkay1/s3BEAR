@@ -106,9 +106,9 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
           return (
             <Button
               type="text"
-              icon={<FolderOutlined style={{ color: '#fe8019', fontSize: 13 }} />}
+              icon={<FolderOutlined style={{ color: '#F59E0B', fontSize: 13 }} />}
               onClick={() => setPrefix(record.key)}
-              style={{ ...monoStyle, color: '#fe8019', padding: '0 4px', fontWeight: 500 }}
+              style={{ ...monoStyle, color: '#F59E0B', padding: '0 4px', fontWeight: 500 }}
             >
               {record.key.replace(prefix, '').replace(/\/$/, '')}/
             </Button>
@@ -119,10 +119,10 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
         return (
           <Space size={8}>
             {isImg
-              ? <FileImageOutlined style={{ color: '#83a598', fontSize: 13 }} />
-              : <FileOutlined style={{ color: '#504945', fontSize: 13 }} />
+              ? <FileImageOutlined style={{ color: '#3B82F6', fontSize: 13 }} />
+              : <FileOutlined style={{ color: '#64748B', fontSize: 13 }} />
             }
-            <span style={{ ...monoStyle, color: '#d5c4a1' }}>{name}</span>
+            <span style={{ ...monoStyle, color: '#CBD5E1' }}>{name}</span>
           </Space>
         )
       },
@@ -133,7 +133,7 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
       key: 'size',
       width: 100,
       render: (v: number, record: any) => (
-        <span style={{ ...monoStyle, color: '#504945' }}>{record.isFolder ? '—' : formatBytes(v)}</span>
+        <span style={{ ...monoStyle, color: '#64748B' }}>{record.isFolder ? '—' : formatBytes(v)}</span>
       ),
     },
     {
@@ -142,7 +142,7 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
       key: 'last_modified',
       width: 160,
       render: (v: string, record: any) => (
-        <span style={{ ...monoStyle, color: '#504945' }}>{record.isFolder ? '—' : dayjs(v).format('YYYY-MM-DD HH:mm')}</span>
+        <span style={{ ...monoStyle, color: '#64748B' }}>{record.isFolder ? '—' : dayjs(v).format('YYYY-MM-DD HH:mm')}</span>
       ),
     },
     {
@@ -159,7 +159,7 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
                 size="small"
                 icon={<LinkOutlined />}
                 onClick={() => setShareModal({ visible: true, key: record.key })}
-                style={{ color: '#504945', opacity: 0.7 }}
+                style={{ color: '#64748B', opacity: 0.7 }}
               />
             </Tooltip>
             {canWrite && (
@@ -169,7 +169,7 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
                   size="small"
                   icon={<DragOutlined />}
                   onClick={() => setCopyMoveModal({ visible: true, mode: 'copy', sourceKey: record.key })}
-                  style={{ color: '#504945', opacity: 0.7 }}
+                  style={{ color: '#64748B', opacity: 0.7 }}
                 />
               </Tooltip>
             )}
@@ -180,7 +180,7 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
                   size="small"
                   icon={<ScissorOutlined />}
                   onClick={() => setCopyMoveModal({ visible: true, mode: 'move', sourceKey: record.key })}
-                  style={{ color: '#504945', opacity: 0.7 }}
+                  style={{ color: '#64748B', opacity: 0.7 }}
                 />
               </Tooltip>
             )}
@@ -213,15 +213,15 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
           justifyContent: 'space-between',
           marginBottom: 12,
           padding: '8px 14px',
-          background: '#282828',
+          background: '#121821',
           borderRadius: 6,
-          border: '1px solid #3c3836',
+          border: '1px solid #232C3A',
           flexWrap: 'wrap',
           gap: 8,
         }}
       >
         <Breadcrumb
-          separator={<span style={{ color: '#504945', fontFamily: "'Fira Code', monospace", fontSize: 12 }}>/</span>}
+          separator={<span style={{ color: '#64748B', fontFamily: "'Fira Code', monospace", fontSize: 12 }}>/</span>}
           items={[
             {
               title: (
@@ -229,7 +229,7 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
                   type="text"
                   size="small"
                   onClick={() => setPrefix('')}
-                  style={{ color: '#928374', padding: '0 4px', fontFamily: "'Fira Code', monospace", fontSize: 12 }}
+                  style={{ color: '#94A3B8', padding: '0 4px', fontFamily: "'Fira Code', monospace", fontSize: 12 }}
                 >
                   ~/{bucket}
                 </Button>
@@ -242,7 +242,7 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
                   size="small"
                   onClick={() => setPrefix(breadcrumbParts.slice(0, i + 1).join('/') + '/')}
                   style={{
-                    color: i === breadcrumbParts.length - 1 ? '#ebdbb2' : '#928374',
+                    color: i === breadcrumbParts.length - 1 ? '#E6EDF3' : '#94A3B8',
                     padding: '0 4px',
                     fontFamily: "'Fira Code', monospace",
                     fontSize: 12,

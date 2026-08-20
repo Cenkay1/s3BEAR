@@ -105,7 +105,7 @@ export default function TokensPage() {
       dataIndex: 'token_prefix',
       key: 'token_prefix',
       width: 180,
-      render: (v: string) => <span style={{ ...mono, fontSize: 11, color: '#928374' }}>{v}…</span>,
+      render: (v: string) => <span style={{ ...mono, fontSize: 11, color: '#94A3B8' }}>{v}…</span>,
     },
     {
       title: 'expires',
@@ -113,7 +113,7 @@ export default function TokensPage() {
       key: 'expires_at',
       width: 150,
       render: (v: string | null) => (
-        <span style={{ ...mono, fontSize: 11, color: '#928374' }}>
+        <span style={{ ...mono, fontSize: 11, color: '#94A3B8' }}>
           {v ? dayjs(v).format('YYYY-MM-DD') : 'never'}
         </span>
       ),
@@ -124,7 +124,7 @@ export default function TokensPage() {
       key: 'last_used_at',
       width: 150,
       render: (v: string | null) => (
-        <span style={{ ...mono, fontSize: 11, color: '#928374' }}>
+        <span style={{ ...mono, fontSize: 11, color: '#94A3B8' }}>
           {v ? dayjs(v).format('YYYY-MM-DD HH:mm') : 'never'}
         </span>
       ),
@@ -152,9 +152,8 @@ export default function TokensPage() {
     <div>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
-          <div style={{ color: '#504945', fontSize: 11, ...mono, letterSpacing: '0.06em', marginBottom: 4 }}>// api tokens</div>
-          <Typography.Title level={3} style={{ margin: 0, color: '#ebdbb2', fontWeight: 700, fontSize: 22, fontFamily: "'Fira Sans', sans-serif" }}>API Tokens</Typography.Title>
-          <div style={{ color: '#928374', fontSize: 12, marginTop: 2, ...mono }}>
+          <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 22, fontFamily: "'Inter', sans-serif" }}>API Tokens</Typography.Title>
+          <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2, ...mono }}>
             Personal access tokens act as you and inherit your permissions.
           </div>
         </div>
@@ -183,7 +182,7 @@ export default function TokensPage() {
         {!created ? (
           <Space direction="vertical" style={{ width: '100%', marginTop: 8 }} size={14}>
             <div>
-              <div style={{ color: '#928374', fontSize: 11, ...mono, marginBottom: 4 }}>name</div>
+              <div style={{ color: '#94A3B8', fontSize: 11, ...mono, marginBottom: 4 }}>name</div>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -192,7 +191,7 @@ export default function TokensPage() {
               />
             </div>
             <div>
-              <div style={{ color: '#928374', fontSize: 11, ...mono, marginBottom: 4 }}>expires</div>
+              <div style={{ color: '#94A3B8', fontSize: 11, ...mono, marginBottom: 4 }}>expires</div>
               <Select value={expiresIn} onChange={setExpiresIn} options={EXPIRY_OPTIONS} style={{ width: '100%' }} />
             </div>
           </Space>

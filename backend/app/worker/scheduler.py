@@ -158,15 +158,26 @@ def _run_audit_log_cleanup_sync():
 
 
 def _run_webhook_dispatch_sync():
-    """Sync wrapper for the async webhook dispatcher, called on an interval."""
+    """Sync wrapper for the async webhook dispatcher, called on an interval.
+
+    APScheduler runs this in a background thread with a fresh event loop each
+    time. The global async engine's asyncpg pool is bound to the main uvicorn
+    loop, so reusing it here raises "attached to a different loop". We therefore
+    create (and dispose) a dedicated engine bound to this loop."""
+    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
     from app.services.webhook import dispatch_pending
-    from app.core.database import AsyncSessionLocal
+    from app.core.config import settings
 
     async def _inner():
-        async with AsyncSessionLocal() as db:
-            result = await dispatch_pending(db)
-            await db.commit()
-            return result
+        engine = create_async_engine(settings.DATABASE_URL, pool_pre_ping=True)
+        Session = async_sessionmaker(bind=engine, expire_on_commit=False)
+        try:
+            async with Session() as db:
+                result = await dispatch_pending(db)
+                await db.commit()
+                return result
+        finally:
+            await engine.dispose()
 
     try:
         loop = asyncio.new_event_loop()

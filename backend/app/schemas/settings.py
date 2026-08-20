@@ -29,3 +29,45 @@ class AzureAdConfigUpdate(BaseModel):
     client_id: str
     client_secret: str | None = None  # None = keep existing secret
     redirect_uri: str
+
+
+# ── S3 connection ─────────────────────────────────────────────────────────────
+
+class S3ConnectionConfig(BaseModel):
+    provider: str  # "aws" | "minio" | "custom"
+    access_key_id: str
+    region: str
+    endpoint_url: str
+    presigned_base: str
+    use_ssl: bool
+    has_secret: bool           # secret is write-only
+    configured: bool           # true when an admin-saved (DB) connection is active
+    source: str                # "db" | "env"
+
+
+class S3ConnectionUpdate(BaseModel):
+    provider: str = "aws"
+    access_key_id: str
+    secret_access_key: str | None = None  # None = keep existing secret
+    region: str = "us-east-1"
+    endpoint_url: str = ""
+    presigned_base: str = ""
+    use_ssl: bool = True
+
+
+# ── Generic auth providers (github / saml / …) ────────────────────────────────
+
+class AuthProvider(BaseModel):
+    id: str                    # "github" | "saml" | …
+    name: str                  # display name
+    type: str                  # "oauth2" | "saml"
+    enabled: bool
+    configured: bool
+    has_secret: bool
+    config: dict               # non-secret config fields
+
+
+class AuthProviderUpdate(BaseModel):
+    enabled: bool = False
+    config: dict = {}
+    secret: str | None = None  # None = keep existing secret

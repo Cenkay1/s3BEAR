@@ -69,8 +69,8 @@ export default function ShareModal({ bucket, objectKey, visible, onClose }: Shar
         {!shareUrl ? (
           <Space direction="vertical" style={{ width: '100%' }} size={16}>
             <div>
-              <div style={{ marginBottom: 6, color: '#928374', fontSize: 12, fontFamily: "'Fira Code', monospace" }}>
-                // link expires after
+              <div style={{ marginBottom: 6, color: '#94A3B8', fontSize: 12, fontFamily: "'Fira Code', monospace" }}>
+                Link expires after
               </div>
               <Select
                 value={expiresIn}

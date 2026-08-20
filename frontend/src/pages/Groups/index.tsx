@@ -6,7 +6,6 @@ import {
   Form,
   Input,
   message,
-  Modal,
   Popconfirm,
   Space,
   Table,
@@ -18,7 +17,7 @@ import { groupsApi, GroupRead, usersApi, UserRead } from '../../api/admin'
 
 function PermissionCell({ group, onDeletePerm }: { group: GroupRead; onDeletePerm: (groupId: string, permId: string) => void }) {
   if (group.permissions.length === 0) {
-    return <span style={{ color: '#504945', fontFamily: "'Fira Code', monospace", fontSize: 11 }}>no permissions</span>
+    return <span style={{ color: '#64748B', fontFamily: "'Fira Code', monospace", fontSize: 11 }}>no permissions</span>
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -32,10 +31,10 @@ function PermissionCell({ group, onDeletePerm }: { group: GroupRead; onDeletePer
             background: 'rgba(255,255,255,0.03)',
             borderRadius: 4,
             padding: '4px 8px',
-            border: '1px solid #3c3836',
+            border: '1px solid #232C3A',
           }}
         >
-          <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: '#fabd2f', fontWeight: 600, minWidth: 80 }}>
+          <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: '#3B82F6', fontWeight: 600, minWidth: 80 }}>
             {p.bucket_pattern}
           </span>
           <span style={{ display: 'flex', gap: 4 }}>
@@ -159,17 +158,17 @@ export default function GroupsPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <div style={{ color: '#504945', fontSize: 11, fontFamily: "'Fira Code', monospace", letterSpacing: '0.06em', marginBottom: 4 }}>// admin / groups</div>
-          <Typography.Title level={3} style={{ margin: 0, color: '#ebdbb2', fontWeight: 700, fontSize: 22, fontFamily: "'Fira Sans', sans-serif" }}>Groups</Typography.Title>
-          <div style={{ color: '#928374', fontSize: 12, marginTop: 2, fontFamily: "'Fira Code', monospace" }}>{groups.length} group{groups.length !== 1 ? 's' : ''}</div>
+          <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 22, fontFamily: "'Inter', sans-serif" }}>Groups</Typography.Title>
+          <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2, fontFamily: "'Fira Code', monospace" }}>{groups.length} group{groups.length !== 1 ? 's' : ''}</div>
         </div>
-        <Button icon={<PlusOutlined />} type="primary" onClick={() => { groupForm.resetFields(); setGroupModal(true) }} style={{ fontFamily: "'Fira Code', monospace", fontSize: 12, height: 36 }}>
-          + new group
+        <Button icon={<PlusOutlined />} type="primary" onClick={() => { groupForm.resetFields(); setGroupModal(true) }} style={{ fontWeight: 600, height: 40 }}>
+          New Group
         </Button>
       </div>
       <Table rowKey="id" columns={columns} dataSource={groups} loading={loading} />
 
-      <Modal open={groupModal} title="New Group" onCancel={() => setGroupModal(false)} onOk={() => groupForm.submit()}>
+      <Drawer open={groupModal} title="New Group" onClose={() => setGroupModal(false)} width={460} destroyOnClose
+        extra={<Space><Button onClick={() => setGroupModal(false)}>Cancel</Button><Button type="primary" onClick={() => groupForm.submit()}>Save</Button></Space>}>
         <Form form={groupForm} layout="vertical" onFinish={handleCreateGroup}>
           <Form.Item name="name" label="Name" rules={[{ required: true }]}>
             <Input />
@@ -178,13 +177,15 @@ export default function GroupsPage() {
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>
-      </Modal>
+      </Drawer>
 
-      <Modal
+      <Drawer
         open={permModal}
         title={`Add Permission — ${selectedGroup?.name}`}
-        onCancel={() => setPermModal(false)}
-        onOk={() => permForm.submit()}
+        onClose={() => setPermModal(false)}
+        width={460}
+        destroyOnClose
+        extra={<Space><Button onClick={() => setPermModal(false)}>Cancel</Button><Button type="primary" onClick={() => permForm.submit()}>Save</Button></Space>}
       >
         <Form form={permForm} layout="vertical" onFinish={handleAddPermission} initialValues={{ can_list: false, can_read: false, can_write: false, can_delete: false }}>
           <Form.Item name="bucket_pattern" label="Bucket Pattern (glob)" rules={[{ required: true }]}>
@@ -195,7 +196,7 @@ export default function GroupsPage() {
           <Form.Item name="can_write" valuePropName="checked"><Checkbox>Write</Checkbox></Form.Item>
           <Form.Item name="can_delete" valuePropName="checked"><Checkbox>Delete</Checkbox></Form.Item>
         </Form>
-      </Modal>
+      </Drawer>
 
       <Drawer
         open={userDrawer}

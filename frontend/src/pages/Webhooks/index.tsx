@@ -137,7 +137,7 @@ export default function WebhooksPage() {
       dataIndex: 'url',
       key: 'url',
       ellipsis: true,
-      render: (v: string) => <span style={{ ...mono, fontSize: 11, color: '#d5c4a1' }}>{v}</span>,
+      render: (v: string) => <span style={{ ...mono, fontSize: 11, color: '#CBD5E1' }}>{v}</span>,
     },
     {
       title: 'events',
@@ -170,18 +170,17 @@ export default function WebhooksPage() {
     { title: 'event', dataIndex: 'event', key: 'event', width: 110, render: (v: string) => <span style={{ ...mono, fontSize: 11 }}>{v}</span> },
     { title: 'status', dataIndex: 'status', key: 'status', width: 90, render: (v: string) => <Tag color={DELIVERY_COLORS[v]} style={{ ...mono, fontSize: 10 }}>{v}</Tag> },
     { title: 'attempts', dataIndex: 'attempts', key: 'attempts', width: 80, render: (v: number) => <span style={{ ...mono, fontSize: 11 }}>{v}</span> },
-    { title: 'code', dataIndex: 'last_status_code', key: 'code', width: 70, render: (v: number | null) => <span style={{ ...mono, fontSize: 11, color: '#928374' }}>{v ?? '—'}</span> },
-    { title: 'error', dataIndex: 'last_error', key: 'error', ellipsis: true, render: (v: string | null) => <span style={{ ...mono, fontSize: 10, color: '#fb4934' }}>{v || ''}</span> },
-    { title: 'time', dataIndex: 'created_at', key: 'time', width: 150, render: (v: string) => <span style={{ ...mono, fontSize: 11, color: '#928374' }}>{dayjs(v).format('MM-DD HH:mm:ss')}</span> },
+    { title: 'code', dataIndex: 'last_status_code', key: 'code', width: 70, render: (v: number | null) => <span style={{ ...mono, fontSize: 11, color: '#94A3B8' }}>{v ?? '—'}</span> },
+    { title: 'error', dataIndex: 'last_error', key: 'error', ellipsis: true, render: (v: string | null) => <span style={{ ...mono, fontSize: 10, color: '#EF4444' }}>{v || ''}</span> },
+    { title: 'time', dataIndex: 'created_at', key: 'time', width: 150, render: (v: string) => <span style={{ ...mono, fontSize: 11, color: '#94A3B8' }}>{dayjs(v).format('MM-DD HH:mm:ss')}</span> },
   ]
 
   return (
     <div>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
-          <div style={{ color: '#504945', fontSize: 11, ...mono, letterSpacing: '0.06em', marginBottom: 4 }}>// admin / webhooks</div>
-          <Typography.Title level={3} style={{ margin: 0, color: '#ebdbb2', fontWeight: 700, fontSize: 22, fontFamily: "'Fira Sans', sans-serif" }}>Webhooks</Typography.Title>
-          <div style={{ color: '#928374', fontSize: 12, marginTop: 2, ...mono }}>
+          <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 22, fontFamily: "'Inter', sans-serif" }}>Webhooks</Typography.Title>
+          <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2, ...mono }}>
             HTTP callbacks on state-changing events, signed with HMAC-SHA256.
           </div>
         </div>
@@ -203,15 +202,15 @@ export default function WebhooksPage() {
         {!created ? (
           <Space direction="vertical" style={{ width: '100%', marginTop: 8 }} size={14}>
             <div>
-              <div style={{ color: '#928374', fontSize: 11, ...mono, marginBottom: 4 }}>name</div>
+              <div style={{ color: '#94A3B8', fontSize: 11, ...mono, marginBottom: 4 }}>name</div>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. indexer" style={{ ...mono, fontSize: 12 }} />
             </div>
             <div>
-              <div style={{ color: '#928374', fontSize: 11, ...mono, marginBottom: 4 }}>url</div>
+              <div style={{ color: '#94A3B8', fontSize: 11, ...mono, marginBottom: 4 }}>url</div>
               <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/hook" style={{ ...mono, fontSize: 12 }} />
             </div>
             <div>
-              <div style={{ color: '#928374', fontSize: 11, ...mono, marginBottom: 4 }}>events</div>
+              <div style={{ color: '#94A3B8', fontSize: 11, ...mono, marginBottom: 4 }}>events</div>
               <Select
                 mode="multiple"
                 value={events}
