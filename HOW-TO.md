@@ -1,15 +1,23 @@
 # s3BEAR — How To Guide
 
-A feature-by-feature technical reference. Each section explains **what the feature does**,
-**how to use it**, and includes a **real-world use case** so you know when to reach for it.
+The technical reference for s3BEAR — a **secure S3 gateway for AI workloads**. This guide
+covers architecture, the API surface, configuration, and a feature-by-feature walkthrough.
+Each feature section explains **what it does**, **how to use it**, and includes a
+**real-world use case** so you know when to reach for it.
 
-s3BEAR serves three purposes, and the sections below are grouped to match them:
+s3BEAR sits in front of any S3-compatible backend and acts as the single gated access path.
+Its capabilities support that role:
 
-1. **S3 management console** — manage buckets, objects, permissions, quotas, and cleanup policies from the web.
+1. **LLM-ready public hosting** — expose private objects as expiring, revocable HTTPS URLs suitable for multimodal LLM inputs.
 2. **Authenticated image serving** — serve images from private buckets to the browser, with per-user permission checks and on-the-fly transforms.
-3. **LLM-ready public hosting** — expose objects as expiring, revocable HTTPS URLs suitable for multimodal LLM inputs.
+3. **S3 management console** — manage buckets, objects, permissions, quotas, and cleanup policies from the web.
 
 ## Table of Contents
+
+**Reference**
+- [Architecture](#architecture)
+- [API Surface](#api-surface)
+- [Configuration](#configuration-reference)
 
 **Setup**
 - [Local Development (Docker Compose)](#local-development-docker-compose)
@@ -37,6 +45,128 @@ s3BEAR serves three purposes, and the sections below are grouped to match them:
 
 **Operations**
 - [Troubleshooting](#troubleshooting)
+
+---
+
+## Architecture
+
+### System Overview
+
+```mermaid
+flowchart LR
+    subgraph Client["Client"]
+        UI["React 18 SPA<br/>(Ant Design + Zustand)"]
+        LLM["LLM API<br/>(Claude / GPT-4o / Gemini)"]
+        EXT["External consumers<br/>(browser, CMS, partners)"]
+    end
+
+    subgraph Gateway["s3BEAR Backend (FastAPI)"]
+        direction TB
+        MW["Middleware<br/>CORS · Security Headers · Rate Limit"]
+        AUTH["Auth<br/>JWT (HS256) · MSAL"]
+        API["API v1 Routers<br/>buckets · objects · images · share · policies · audit"]
+        PERM["Permission Engine<br/>(glob + group union)"]
+        SCHED["APScheduler<br/>cleanup worker"]
+    end
+
+    subgraph Data["Data Plane"]
+        S3[("S3 / MinIO<br/>object storage")]
+        PG[("PostgreSQL<br/>users · groups · policies · audit · share links · webhooks")]
+    end
+
+    UI -->|"JWT REST"| MW
+    MW --> AUTH --> API --> PERM
+    EXT -->|"public token URL (no auth)"| API
+    LLM -->|"HTTPS GET image"| API
+    PERM -->|"boto3 (async)"| S3
+    API --> PG
+    SCHED --> S3
+    SCHED --> PG
+    UI -. "multipart parts (presigned)" .-> S3
+```
+
+For large uploads the browser sends parts directly to S3/MinIO via presigned PUT URLs
+(dashed line); the backend only signs URLs and finalizes the manifest. This removes the
+double-bandwidth cost and the FastAPI request-size limit.
+
+### Request Flows
+
+**1) Authenticated image preview (private bucket)**
+
+```mermaid
+sequenceDiagram
+    participant B as Browser (JWT)
+    participant API as s3BEAR /images
+    participant P as Permission Engine
+    participant S3 as S3 / MinIO
+    B->>API: GET /api/v1/images/{bucket}/{key}
+    API->>P: can_read(user, bucket)?
+    P-->>API: allowed
+    API->>S3: stream_object()
+    S3-->>API: bytes + content-type
+    API-->>B: 200 image/* (MIME allow-listed, cached)
+```
+
+**2) LLM-ready public share link**
+
+```mermaid
+sequenceDiagram
+    participant U as User (JWT)
+    participant API as s3BEAR
+    participant LLM as LLM Provider
+    participant S3 as S3 / MinIO (private)
+    U->>API: POST /api/v1/share/{bucket}/{key} { expires_in: "7d" }
+    API-->>U: { token, url: /public/s/{token}, expires_at }
+    Note over U,LLM: pass the URL to the LLM as an image source
+    LLM->>API: GET /api/v1/public/s/{token} (no auth)
+    API->>API: token valid and not expired/revoked?
+    API->>S3: stream_object()
+    S3-->>API: bytes
+    API-->>LLM: 200 inline, bucket stays private, expired or revoked returns 410
+```
+
+---
+
+## API Surface
+
+All endpoints are under `/api/v1`. Interactive OpenAPI docs are served at `http://<backend>/docs`.
+
+| Router | Responsibility |
+|--------|----------------|
+| `auth` | Login (local + Entra), token refresh, callback |
+| `tokens` | Personal access token (PAT) create/list/revoke |
+| `buckets` | Bucket CRUD, listing/browsing, quotas |
+| `objects` | Object listing, deletion, copy/move, bulk copy/move, presigned download |
+| `upload` | Multipart init / complete, simple upload |
+| `images` | Authenticated image proxy with optional on-the-fly transforms |
+| `share` + `public` | Expiring/revocable tokenized public links (create/list/revoke) + unauthenticated serving at `/public/s/{token}` |
+| `policies` | Cleanup policy CRUD and manual runs |
+| `webhooks` | Webhook endpoint CRUD, delivery log, and test delivery (admin) |
+| `users` / `groups` | User and group management, permission assignment, Entra import |
+| `settings` | Runtime settings (auth toggles, auto-provisioning, quotas) |
+| `audit` | Audit-log queries (filtering + pagination) |
+
+---
+
+## Configuration Reference
+
+Key environment variables (see `.env.example` for the full list):
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `SECRET_KEY` | — | JWT signing key (min 32 chars, required) |
+| `DATABASE_URL` / `DATABASE_URL_SYNC` | localhost | Async / sync (Alembic) database connections |
+| `AWS_ENDPOINT_URL` | `""` | S3 endpoint (for MinIO/compatible) |
+| `PRESIGNED_URL_BASE` | `""` | External URL the browser uses to reach S3 (critical for multipart) |
+| `MULTIPART_PART_SIZE_MB` | `10` | Multipart part size |
+| `PRESIGNED_URL_EXPIRY_SECONDS` | `1800` | Presigned URL lifetime |
+| `MAX_IMAGE_TRANSFORM_MB` | `25` | Source-size cap for on-the-fly image transforms (413 on breach) |
+| `WEBHOOKS_ENABLED` | `true` | Enable webhook enqueue + dispatch |
+| `WEBHOOK_MAX_ATTEMPTS` | `4` | Delivery attempts before a webhook is marked failed |
+| `WEBHOOK_TIMEOUT_SECONDS` | `10` | Per-delivery HTTP timeout |
+| `AZURE_TENANT_ID` / `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` | `""` | Entra SSO credentials |
+| `AUDIT_LOG_ENABLED` / `AUDIT_LOG_FILE_ENABLED` | `true` | Audit logging (database / file) |
+| `AUDIT_LOG_RETENTION_DAYS` | `90` | File audit retention |
 
 ---
 
