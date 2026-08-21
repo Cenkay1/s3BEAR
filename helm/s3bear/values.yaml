@@ -3,11 +3,11 @@ replicaCount: 1
 image:
   backend:
     repository: bearcomp/s3bear-backend
-    tag: 1.0.0
+    tag: latest
     pullPolicy: IfNotPresent
   frontend:
     repository: bearcomp/s3bear-frontend
-    tag: 1.0.1
+    tag: latest
     pullPolicy: IfNotPresent
 
 service:
