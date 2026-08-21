@@ -125,7 +125,6 @@ More screens (sign-in, storage & auth settings, webhooks) are in **[HOW-TO.md](H
 ## Documentation
 
 - **[HOW-TO.md](HOW-TO.md)** — architecture, API surface, configuration, and a feature-by-feature technical guide with real-world use cases
-- **[docs/ROADMAP.md](docs/ROADMAP.md)** — planned and proposed features
 - **OpenAPI** — `http://<backend>/docs` (Swagger UI) and `http://<backend>/redoc`
 
 ## License

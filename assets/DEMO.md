@@ -4,25 +4,42 @@ The README embeds `assets/demo.gif`. This is a 30-60 second screen recording tha
 first-time visitor an instant sense of what s3BEAR does. Keep it tight and silent (GIFs have
 no audio) — the motion tells the story.
 
-## What to show (suggested 40s script)
+## What to show — the ONE flow (35-40s)
 
-1. **(0-8s)** Sign in, land on the Buckets view. Let a couple of buckets and objects be visible.
-2. **(8-20s)** Open an image object → click **Share** → set an expiry (e.g. 7 days) → copy the
-   generated public HTTPS URL.
-3. **(20-30s)** Paste that URL into a browser tab or an LLM chat as an image input — it loads,
-   proving the object is reachable while the bucket stays private.
-4. **(30-40s)** Back in s3BEAR, **revoke** the link, reload the URL → it now returns `410 Gone`.
+Do **not** record generic bucket/file browsing — that reads as "just another S3 console" and
+undercuts the positioning. Record the single flow that shows the unique value: a private
+object becomes an expiring, revocable URL you can hand to an LLM, and the bucket never goes
+public.
 
-This arc lands the core message: *private storage, governed access, expiring AI-ready URLs.*
+| Time | Action | What it proves |
+|------|--------|----------------|
+| 0-5s | Buckets view; click an image in a **private** bucket | Storage is private |
+| 5-15s | **Share** → set expiry (e.g. 7d) → **Copy link** (HTTPS URL) | Shareable without making the bucket public |
+| 15-25s | Open the link in a new browser tab → the image loads | The URL actually works for a client / LLM |
+| 25-35s | Back in s3BEAR → **Revoke** the link → reload the tab → **410 Gone** | You control access; the bucket was never public |
+
+This arc is the visual proof of the README's *The Problem / The Solution* sections.
+
+**Browser tab vs. real LLM:** opening the link in a plain browser tab (step 3) is the safe,
+repeatable choice — recommended. Pasting the URL into a real Claude/GPT chat as an image input
+is more striking but slower and riskier on a single take; only do it if you rehearse first.
+
+**Optional +8s governance beat:** after the revoke, cut to the **Audit Log** and show the
+"share created / revoked" rows appearing. Skip it if it makes the clip drag — short beats long.
 
 ## Recording
 
+- **Recommended tool: [Kap](https://getkap.co)** (free, open source). Select a region over
+  the browser window and **export straight to GIF** — no ffmpeg/gifski needed. Set ~15 fps and
+  width ~1200 in Kap's export dialog, and you can skip the "Optimizing" section below entirely.
+- Alternatives: **LICEcap** (records directly to `.gif`), or macOS **QuickTime** / `Cmd+Shift+5`
+  (records `.mov`, then convert with the commands below).
 - Record at **1280x720** (or 1440x810) so text stays legible when scaled down.
-- Use any screen recorder: macOS **QuickTime** (File → New Screen Recording), or **Kap**
-  (https://getkap.co) which exports GIF directly.
-- Trim dead air. Aim for **30-45 seconds**.
+- Keep the cursor slow and deliberate. Trim dead air. Aim for **30-40 seconds**.
+- Do not let secrets show on screen: no `admin`/`admin`, no secret key, no real S3 credentials.
+  Use seeded demo data.
 
-## Optimizing (target < 6 MB)
+## Optimizing (only if you recorded a video, not with Kap — target < 6 MB)
 
 A raw GIF can be 30 MB+. Convert from an MP4/MOV recording for a much smaller file.
 
