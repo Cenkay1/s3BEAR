@@ -360,13 +360,29 @@ Planned and proposed features are tracked in **[docs/ROADMAP.md](docs/ROADMAP.md
 
 ## Screenshots
 
-**Bucket Panel**
+**Sign In**
 
-<img width="1510" alt="Bucket Panel" src="https://github.com/user-attachments/assets/4710ebbb-058d-4a8a-982f-1523aeeb7122" />
+![Sign In](assets/screenshots/login.png)
 
-**Policy Panel**
+**Buckets**
 
-<img width="1512" alt="Policy Panel" src="https://github.com/user-attachments/assets/d6c3a324-1797-47ca-b549-63dd859f95d6" />
+![Buckets](assets/screenshots/buckets.png)
+
+**Storage Connection (Settings)**
+
+![Storage settings](assets/screenshots/settings-storage.png)
+
+**Authentication Methods (Settings)**
+
+![Authentication settings](assets/screenshots/settings-auth.png)
+
+**Webhooks**
+
+![Webhooks](assets/screenshots/webhooks.png)
+
+**Audit Logs**
+
+![Audit logs](assets/screenshots/audit.png)
 
 ---
 

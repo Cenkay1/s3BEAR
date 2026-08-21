@@ -79,18 +79,12 @@ export default function AppLayout() {
         }}
       >
         {/* Logo */}
-        <div style={{ padding: '20px 18px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <img
-              src="/logo.png"
-              alt="S3Bear"
-              style={{ width: 40, height: 40, objectFit: 'contain', flexShrink: 0 }}
-            />
-            <div style={{ lineHeight: 1.2 }}>
-              <div style={{ color: '#E6EDF3', fontWeight: 700, fontSize: 16, letterSpacing: '-0.01em' }}>S3Bear</div>
-              <div style={{ color: '#64748B', fontSize: 12 }}>Cloud Gateway</div>
-            </div>
-          </div>
+        <div style={{ padding: '14px 12px 12px' }}>
+          <img
+            src="/logo.png"
+            alt="S3Bear"
+            style={{ width: '100%', maxHeight: 96, objectFit: 'contain', display: 'block' }}
+          />
         </div>
 
         <div style={{ height: 1, background: '#1A2230', margin: '4px 16px 12px' }} />

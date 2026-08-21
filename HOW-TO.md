@@ -193,6 +193,8 @@ aws s3api put-bucket-cors --bucket YOUR_BUCKET --cors-configuration file://cors.
 
 ## Authentication: Local + Azure Entra SSO
 
+![Sign In](assets/screenshots/login.png)
+
 ### What it does
 
 Two parallel auth paths, both yielding a JWT (HS256, 30-min access token + 7-day refresh token):
@@ -237,6 +239,8 @@ Set `auto_create_users=true` in app settings. When a new Entra user logs in for 
 ---
 
 ## Personal Access Tokens (API Tokens)
+
+![API Tokens](assets/screenshots/tokens.png)
 
 ### What it does
 
@@ -319,6 +323,8 @@ Create an `Auditors` group with pattern `*` and only `can_list` + `can_read`. Dr
 ---
 
 ## Bucket Management & Quotas
+
+![Buckets](assets/screenshots/buckets.png)
 
 ### What it does
 
@@ -525,6 +531,8 @@ Permissions are enforced per-user, the URL never expires, and you get free brows
 
 ## Public Share Links
 
+![Shares](assets/screenshots/shares.png)
+
 ### What it does
 
 Turns any object in a private bucket into a **tokenized, expiring, revocable HTTPS URL** — no S3 ACL changes. Internally:
@@ -661,6 +669,8 @@ Your CI pipeline drops a fresh artifact bundle into `builds-pr/` for every pull 
 
 ## Webhooks
 
+![Webhooks](assets/screenshots/webhooks.png)
+
 ### What it does
 
 Webhooks turn s3BEAR's state-changing events into outbound HTTP callbacks, so external
@@ -745,6 +755,8 @@ tamper-evident [audit log](#audit-log).
 ---
 
 ## Audit Log
+
+![Audit Logs](assets/screenshots/audit.png)
 
 ### What it does
 
