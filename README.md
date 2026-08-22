@@ -33,13 +33,7 @@ expiring links, and audit logging in front of any S3-compatible backend.
 
 <div align="center">
 
-<!--
-  PLACEHOLDER: this currently points at a screenshot so the README never shows a broken image.
-  Once you record the 30-60s demo, save it as assets/demo.gif and change the src below
-  from "assets/screenshots/buckets.png" to "assets/demo.gif". Guide: assets/DEMO.md
--->
-
-<img src="assets/screenshots/buckets.png" alt="s3BEAR demo" width="800" />
+<img src="assets/demo.gif" alt="s3BEAR demo" width="800" />
 
 *30-second tour: connect storage, browse buckets, mint an expiring link, feed it to an LLM.
 [How the demo GIF is produced →](assets/DEMO.md)*
