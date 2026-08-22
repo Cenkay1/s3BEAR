@@ -35,9 +35,6 @@ expiring links, and audit logging in front of any S3-compatible backend.
 
 <img src="assets/demo.gif" alt="s3BEAR demo" width="800" />
 
-*30-second tour: connect storage, browse buckets, mint an expiring link, feed it to an LLM.
-[How the demo GIF is produced →](assets/DEMO.md)*
-
 </div>
 
 ---
