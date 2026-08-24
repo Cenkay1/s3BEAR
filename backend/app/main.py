@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 import logging
 import secrets as secrets_module
+from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,7 +28,18 @@ async def _seed_default_admin() -> None:
         password = settings.DEFAULT_ADMIN_PASSWORD
         if not password or password == "admin":
             password = secrets_module.token_urlsafe(16)
-            logger.warning("Generated random admin password: %s", password)
+            # Do not log the secret. Write it to a restricted-permission file
+            # so the operator can retrieve it on first boot, and log only the path.
+            cred_path = Path("admin_credentials.txt").resolve()
+            cred_path.write_text(
+                f"{settings.DEFAULT_ADMIN_EMAIL}\n{password}\n", encoding="utf-8"
+            )
+            cred_path.chmod(0o600)
+            logger.warning(
+                "No admin password configured; generated a random one and wrote it to %s "
+                "(set DEFAULT_ADMIN_PASSWORD to control it).",
+                cred_path,
+            )
 
         admin = User(
             email=settings.DEFAULT_ADMIN_EMAIL,
