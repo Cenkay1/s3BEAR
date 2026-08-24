@@ -41,20 +41,21 @@ async def _seed_default_admin() -> None:
         logger.info("Default admin user created: %s", settings.DEFAULT_ADMIN_EMAIL)
 
 
-async def _load_s3_connection() -> None:
-    """Load an admin-saved S3 connection from the DB into the runtime config."""
+async def _load_providers() -> None:
+    """Load storage providers and the bucket→provider routing map from the DB."""
     from app.core.database import AsyncSessionLocal
-    from app.api.v1.settings import load_s3_connection
+    from app.services.provider_registry import reload_registry
     from app.services import s3 as s3_service
 
     try:
         async with AsyncSessionLocal() as db:
-            cfg = await load_s3_connection(db)
-        if cfg:
-            s3_service.set_runtime_config(cfg)
-            logger.info("Loaded S3 connection from database (provider=%s)", cfg.get("provider"))
+            await reload_registry(db)
+        if s3_service.has_providers():
+            logger.info("Loaded storage providers from database")
+        else:
+            logger.info("No storage providers configured; using environment S3 config")
     except Exception:
-        logger.exception("Failed to load S3 connection from database")
+        logger.exception("Failed to load storage providers from database")
 
 
 @asynccontextmanager
@@ -64,7 +65,7 @@ async def lifespan(app: FastAPI):
     start_scheduler()
     await load_all_policies()
     await _seed_default_admin()
-    await _load_s3_connection()
+    await _load_providers()
     logger.info("s3BEAR started")
     yield
     # Shutdown

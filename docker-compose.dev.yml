@@ -37,6 +37,30 @@ services:
       timeout: 5s
       retries: 5
 
+  # Second, independent MinIO instance — used to exercise multi-provider routing.
+  # Register it as a separate Storage Provider in the UI:
+  #   Endpoint URL:        http://minio2:9000      (backend-internal)
+  #   Presigned URL Base:  http://localhost:9010   (browser-facing)
+  #   Access key / secret: minioadmin / minioadmin
+  minio2:
+    image: minio/minio:latest
+    restart: unless-stopped
+    ports:
+      - "9010:9000"
+      - "9011:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
+    volumes:
+      - minio2_data_dev:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend-migrate:
     image: s3bear-backend:1.0.0
     command: ["alembic", "upgrade", "head"]
@@ -81,3 +105,4 @@ services:
 volumes:
   postgres_data_dev:
   minio_data_dev:
+  minio2_data_dev:

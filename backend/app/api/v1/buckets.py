@@ -1,4 +1,5 @@
 import re
+import uuid
 from fnmatch import fnmatch
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -9,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, get_db, require_admin
 from app.models.user import User
 from app.models.settings import AppSetting
+from app.models.provider import StorageProvider, ManagedBucket
 from app.schemas.s3 import BucketInfo, BrowseResult, S3Object
 from app.services import s3 as s3_service
 from app.services.audit import log_audit, CREATE_BUCKET, DELETE_BUCKET
@@ -37,6 +39,7 @@ _BUCKET_NAME_RE = re.compile(r'^[a-z0-9][a-z0-9.\-]{1,61}[a-z0-9]$')
 class CreateBucketRequest(BaseModel):
     name: str
     quota_gb: float | None = None
+    provider_id: str | None = None  # which storage provider serves this bucket
 
     @field_validator("name")
     @classmethod
@@ -63,6 +66,8 @@ async def list_buckets(
                 BucketInfo(
                     name=bucket["name"],
                     creation_date=bucket.get("creation_date"),
+                    provider_id=bucket.get("provider_id"),
+                    provider_name=bucket.get("provider_name"),
                     **perms,
                 )
             )
@@ -76,10 +81,31 @@ async def create_bucket(
     admin: Annotated[User, Depends(require_admin)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
+    # Resolve the target provider: explicit choice, else the default provider.
+    provider: StorageProvider | None = None
+    if body.provider_id:
+        try:
+            pid = uuid.UUID(body.provider_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid provider_id")
+        provider = (await db.execute(select(StorageProvider).where(StorageProvider.id == pid))).scalar_one_or_none()
+        if provider is None:
+            raise HTTPException(status_code=404, detail="Provider not found")
+    else:
+        provider = (await db.execute(select(StorageProvider).where(StorageProvider.is_default == True))).scalar_one_or_none()  # noqa: E712
+
+    # Bucket names are globally unique across s3BEAR so routing stays unambiguous.
+    already = (await db.execute(select(ManagedBucket).where(ManagedBucket.name == body.name))).scalar_one_or_none()
+    if already:
+        raise HTTPException(status_code=409, detail=f"Bucket '{body.name}' already exists")
+
     try:
-        await s3_service.create_bucket(body.name)
+        await s3_service.create_bucket(body.name, provider_id=str(provider.id) if provider else None)
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
+
+    if provider is not None:
+        db.add(ManagedBucket(name=body.name, provider_id=provider.id))
 
     if body.quota_gb is not None:
         key = f"bucket_quota_gb:{body.name}"
@@ -91,9 +117,14 @@ async def create_bucket(
             db.add(AppSetting(key=key, value=str(body.quota_gb)))
 
     await log_audit(db, admin, CREATE_BUCKET, bucket=body.name,
-                    details={"quota_gb": body.quota_gb} if body.quota_gb else None,
+                    details={"quota_gb": body.quota_gb, "provider": provider.name if provider else None},
                     ip_address=request.client.host if request.client else None)
-    return {"name": body.name, "quota_gb": body.quota_gb}
+    await db.flush()
+    if provider is not None:
+        s3_service.register_bucket(body.name, str(provider.id))
+    return {"name": body.name, "quota_gb": body.quota_gb,
+            "provider_id": str(provider.id) if provider else None,
+            "provider_name": provider.name if provider else None}
 
 
 @router.delete("/{bucket_name}", status_code=200, responses={404: {"description": "Bucket not found"}, 409: {"description": "Bucket not empty"}})
@@ -109,6 +140,12 @@ async def delete_bucket(
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
+
+    mb = (await db.execute(select(ManagedBucket).where(ManagedBucket.name == bucket_name))).scalar_one_or_none()
+    if mb:
+        await db.delete(mb)
+    s3_service.unregister_bucket(bucket_name)
+
     await log_audit(db, admin, DELETE_BUCKET, bucket=bucket_name,
                     ip_address=request.client.host if request.client else None)
     return {"deleted": bucket_name}

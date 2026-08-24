@@ -24,6 +24,8 @@ export interface BucketStorageStat {
   size: number
   object_count: number
   quota_bytes: number
+  provider_id?: string | null
+  provider_name?: string | null
 }
 
 export interface StorageStats {

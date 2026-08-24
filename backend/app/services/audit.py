@@ -32,6 +32,9 @@ TOKEN_REVOKE = "token_revoke"
 WEBHOOK_CREATE = "webhook_create"
 WEBHOOK_UPDATE = "webhook_update"
 WEBHOOK_DELETE = "webhook_delete"
+PROVIDER_CREATE = "provider_create"
+PROVIDER_UPDATE = "provider_update"
+PROVIDER_DELETE = "provider_delete"
 
 
 async def _write_audit_to_file(
