@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1 import auth, buckets, objects, images, users, groups, policies, settings, share, audit, upload, tokens, webhooks
+from app.api.v1 import auth, buckets, objects, images, users, groups, policies, settings, share, audit, upload, tokens, webhooks, providers
 
 router = APIRouter(prefix="/api/v1")
 
@@ -16,3 +16,4 @@ router.include_router(audit.router)
 router.include_router(upload.router)
 router.include_router(tokens.router)
 router.include_router(webhooks.router)
+router.include_router(providers.router)

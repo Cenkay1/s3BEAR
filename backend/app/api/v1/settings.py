@@ -8,12 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, require_admin
 from app.core.config import settings as env_settings
 from app.models.settings import AppSetting
+from app.models.provider import StorageProvider
 from app.models.user import User
 from app.schemas.settings import (
     AuthConfig, AuthConfigUpdate, AuthProvider, AuthProviderUpdate,
     AzureAdConfig, AzureAdConfigUpdate, S3ConnectionConfig, S3ConnectionUpdate,
 )
 from app.services import s3 as s3_service
+from app.services.provider_registry import reload_registry
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -200,18 +202,27 @@ async def update_bucket_quota(
 
 # ── S3 connection ─────────────────────────────────────────────────────────────
 
+# The legacy single-connection endpoints below are kept for backward
+# compatibility and now operate on the *default* storage provider. New multi-
+# provider management lives under /api/v1/providers.
+
+async def _get_default_provider(db: AsyncSession) -> StorageProvider | None:
+    return (await db.execute(
+        select(StorageProvider).where(StorageProvider.is_default == True)  # noqa: E712
+    )).scalar_one_or_none()
+
+
 async def _build_connection_response(db: AsyncSession) -> S3ConnectionConfig:
-    rows = await _get_rows(db, _S3_KEYS)
-    configured = bool(rows.get("s3_access_key_id"))
-    if configured:
+    provider = await _get_default_provider(db)
+    if provider is not None:
         return S3ConnectionConfig(
-            provider=rows.get("s3_provider", "aws"),
-            access_key_id=rows.get("s3_access_key_id", ""),
-            region=rows.get("s3_region", "us-east-1"),
-            endpoint_url=rows.get("s3_endpoint_url", ""),
-            presigned_base=rows.get("s3_presigned_base", ""),
-            use_ssl=rows.get("s3_use_ssl", "true") == "true",
-            has_secret=bool(rows.get("s3_secret_access_key")),
+            provider=provider.provider_type,
+            access_key_id=provider.access_key_id,
+            region=provider.region,
+            endpoint_url=provider.endpoint_url,
+            presigned_base=provider.presigned_base,
+            use_ssl=provider.use_ssl,
+            has_secret=bool(provider.secret_access_key),
             configured=True,
             source="db",
         )
@@ -243,9 +254,8 @@ async def update_s3_connection(
     _: Annotated[User, Depends(require_admin)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    # Resolve the secret: use provided, else keep the existing stored one.
-    existing = await _get_rows(db, _S3_KEYS)
-    secret = body.secret_access_key if body.secret_access_key else existing.get("s3_secret_access_key", "")
+    provider = await _get_default_provider(db)
+    secret = body.secret_access_key if body.secret_access_key else (provider.secret_access_key if provider else "")
     if not secret:
         raise HTTPException(status_code=400, detail="Secret access key is required")
 
@@ -262,16 +272,19 @@ async def update_s3_connection(
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=f"Connection test failed: {str(e)[:200]}")
 
-    await _upsert(db, "s3_provider", body.provider)
-    await _upsert(db, "s3_access_key_id", body.access_key_id)
-    await _upsert(db, "s3_secret_access_key", secret)
-    await _upsert(db, "s3_region", body.region)
-    await _upsert(db, "s3_endpoint_url", body.endpoint_url)
-    await _upsert(db, "s3_presigned_base", body.presigned_base)
-    await _upsert(db, "s3_use_ssl", str(body.use_ssl).lower())
+    if provider is None:
+        provider = StorageProvider(name="Default", is_default=True)
+        db.add(provider)
+    provider.provider_type = body.provider
+    provider.access_key_id = body.access_key_id
+    provider.secret_access_key = secret
+    provider.region = body.region
+    provider.endpoint_url = body.endpoint_url
+    provider.presigned_base = body.presigned_base
+    provider.use_ssl = body.use_ssl
     await db.flush()
-
-    s3_service.set_runtime_config(cfg)
+    await db.commit()
+    await reload_registry(db)
     return await _build_connection_response(db)
 
 
@@ -281,8 +294,8 @@ async def test_s3_connection(
     _: Annotated[User, Depends(require_admin)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    existing = await _get_rows(db, _S3_KEYS)
-    secret = body.secret_access_key if body.secret_access_key else existing.get("s3_secret_access_key", "")
+    provider = await _get_default_provider(db)
+    secret = body.secret_access_key if body.secret_access_key else (provider.secret_access_key if provider else "")
     if not secret:
         raise HTTPException(status_code=400, detail="Secret access key is required")
     cfg = {

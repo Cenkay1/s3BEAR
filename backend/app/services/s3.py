@@ -1,7 +1,6 @@
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
-from datetime import datetime, timezone
 from typing import AsyncGenerator, Optional
 import asyncio
 from functools import partial
@@ -10,60 +9,110 @@ from app.core.config import settings
 
 DEFAULT_CONTENT_TYPE = "application/octet-stream"
 
-# Runtime S3 connection config. When None, the env-var config is used (default).
-# When an admin saves a connection via Settings, it is loaded here and takes
-# precedence over the environment. Shape: {access_key, secret_key, region,
-# endpoint, presigned_base}.
-_runtime_cfg: dict | None = None
+# ── Multi-provider runtime registry ───────────────────────────────────────────
+# s3BEAR can front several S3-compatible backends at once. Each provider holds a
+# full connection config; each managed bucket is bound to one provider, and every
+# operation on that bucket is routed to it. When no provider is configured yet,
+# the environment (AWS_*) config acts as an implicit "env" provider so existing
+# single-backend deployments keep working.
+#
+# Normalized provider cfg shape:
+#   {id, name, access_key, secret_key, region, endpoint, presigned_base, use_ssl}
+_providers: dict[str, dict] = {}
+_default_provider_id: str | None = None
+_bucket_map: dict[str, str] = {}  # bucket_name -> provider_id
+
+ENV_PROVIDER_ID = "env"
 
 
-def set_runtime_config(cfg: dict | None) -> None:
-    """Install (or clear, with None) the active S3 connection config."""
-    global _runtime_cfg
-    _runtime_cfg = cfg
+def set_providers(providers: list[dict], default_id: str | None = None) -> None:
+    """Install the full set of storage providers (replaces the current set)."""
+    global _providers, _default_provider_id
+    _providers = {p["id"]: p for p in providers}
+    if default_id and default_id in _providers:
+        _default_provider_id = default_id
+    elif providers:
+        _default_provider_id = providers[0]["id"]
+    else:
+        _default_provider_id = None
 
 
-def has_runtime_config() -> bool:
-    return _runtime_cfg is not None
+def set_bucket_map(mapping: dict[str, str]) -> None:
+    """Install the bucket_name -> provider_id routing map (replaces current)."""
+    global _bucket_map
+    _bucket_map = dict(mapping)
 
 
-def _cfg() -> dict:
-    """Resolve the effective S3 config: runtime config if set, else env vars."""
-    if _runtime_cfg is not None:
-        c = _runtime_cfg
-        return {
-            "access_key": c.get("access_key") or settings.AWS_ACCESS_KEY_ID,
-            "secret_key": c.get("secret_key") or settings.AWS_SECRET_ACCESS_KEY,
-            "region": c.get("region") or settings.AWS_REGION,
-            "endpoint": c.get("endpoint") or "",
-            "presigned_base": c.get("presigned_base") or "",
-        }
+def register_bucket(bucket_name: str, provider_id: str) -> None:
+    _bucket_map[bucket_name] = provider_id
+
+
+def unregister_bucket(bucket_name: str) -> None:
+    _bucket_map.pop(bucket_name, None)
+
+
+def has_providers() -> bool:
+    return bool(_providers)
+
+
+def _env_cfg() -> dict:
+    """The implicit provider derived from environment variables."""
     return {
+        "id": ENV_PROVIDER_ID,
+        "name": "Environment",
         "access_key": settings.AWS_ACCESS_KEY_ID,
         "secret_key": settings.AWS_SECRET_ACCESS_KEY,
         "region": settings.AWS_REGION,
         "endpoint": settings.AWS_ENDPOINT_URL,
         "presigned_base": settings.PRESIGNED_URL_BASE,
+        "use_ssl": True,
     }
 
 
-def _make_client(cfg: dict | None = None):
-    c = cfg or _cfg()
+def _effective_providers() -> list[dict]:
+    """All providers to operate over. Falls back to the env provider when none
+    are configured in the database."""
+    if _providers:
+        return list(_providers.values())
+    return [_env_cfg()]
+
+
+def _resolve_cfg(bucket: str | None = None, provider_id: str | None = None) -> dict:
+    """Resolve the effective connection config for an operation.
+
+    Priority: explicit provider_id > the bucket's mapped provider > default
+    provider > environment fallback.
+    """
+    if provider_id and provider_id in _providers:
+        return _providers[provider_id]
+    if bucket is not None:
+        pid = _bucket_map.get(bucket)
+        if pid and pid in _providers:
+            return _providers[pid]
+    if _default_provider_id and _default_provider_id in _providers:
+        return _providers[_default_provider_id]
+    if _providers:
+        return next(iter(_providers.values()))
+    return _env_cfg()
+
+
+def _make_client(bucket: str | None = None, provider_id: str | None = None, cfg: dict | None = None):
+    c = cfg or _resolve_cfg(bucket, provider_id)
     kwargs = {
         "aws_access_key_id": c["access_key"],
         "aws_secret_access_key": c["secret_key"],
         "region_name": c["region"],
     }
-    if c["endpoint"]:
+    if c.get("endpoint"):
         kwargs["endpoint_url"] = c["endpoint"]
     return boto3.client("s3", **kwargs)
 
 
-def _make_presign_client():
+def _make_presign_client(bucket: str | None = None, provider_id: str | None = None):
     """Client that uses the external-facing URL and SigV4 for presigned URL generation.
     SigV4 is required — MinIO rejects SigV2 presigned URLs for multipart uploads."""
-    c = _cfg()
-    endpoint = c["presigned_base"] or c["endpoint"]
+    c = _resolve_cfg(bucket, provider_id)
+    endpoint = c.get("presigned_base") or c.get("endpoint")
     kwargs = {
         "aws_access_key_id": c["access_key"],
         "aws_secret_access_key": c["secret_key"],
@@ -75,9 +124,24 @@ def _make_presign_client():
     return boto3.client("s3", **kwargs)
 
 
+def normalize_cfg(raw: dict) -> dict:
+    """Normalize an arbitrary cfg dict (e.g. from the providers API) to the
+    internal shape so it can be passed to _make_client / test_config."""
+    return {
+        "id": raw.get("id", ""),
+        "name": raw.get("name", ""),
+        "access_key": raw.get("access_key") or raw.get("access_key_id", ""),
+        "secret_key": raw.get("secret_key") or raw.get("secret_access_key", ""),
+        "region": raw.get("region") or "us-east-1",
+        "endpoint": raw.get("endpoint") or raw.get("endpoint_url", ""),
+        "presigned_base": raw.get("presigned_base", ""),
+        "use_ssl": raw.get("use_ssl", True),
+    }
+
+
 async def test_config(cfg: dict) -> None:
     """Validate an S3 config by attempting a list_buckets. Raises on failure."""
-    client = _make_client(cfg)
+    client = _make_client(cfg=normalize_cfg(cfg))
     await _run_sync(client.list_buckets)
 
 
@@ -86,8 +150,8 @@ def _run_sync(func, *args, **kwargs):
     return loop.run_in_executor(None, partial(func, *args, **kwargs))
 
 
-async def create_bucket(bucket_name: str) -> None:
-    client = _make_client()
+async def create_bucket(bucket_name: str, provider_id: str | None = None) -> None:
+    client = _make_client(provider_id=provider_id)
     try:
         await _run_sync(client.create_bucket, Bucket=bucket_name)
     except ClientError as e:
@@ -98,7 +162,7 @@ async def create_bucket(bucket_name: str) -> None:
 
 
 async def delete_bucket(bucket_name: str) -> None:
-    client = _make_client()
+    client = _make_client(bucket=bucket_name)
     try:
         await _run_sync(client.delete_bucket, Bucket=bucket_name)
     except ClientError as e:
@@ -111,19 +175,37 @@ async def delete_bucket(bucket_name: str) -> None:
 
 
 async def list_buckets() -> list[dict]:
-    client = _make_client()
-    response = await _run_sync(client.list_buckets)
-    return [
-        {
-            "name": b["Name"],
-            "creation_date": b.get("CreationDate"),
-        }
-        for b in response.get("Buckets", [])
-    ]
+    """List buckets across every configured provider, tagging each with the
+    provider it lives on. Also refreshes the routing map for discovered buckets
+    so externally-created buckets remain addressable."""
+    result: list[dict] = []
+    seen: set[str] = set()
+    for cfg in _effective_providers():
+        client = _make_client(cfg=cfg)
+        try:
+            response = await _run_sync(client.list_buckets)
+        except ClientError:
+            continue  # a misconfigured provider must not break the whole listing
+        for b in response.get("Buckets", []):
+            name = b["Name"]
+            if name in seen:
+                continue
+            seen.add(name)
+            # Explicit mapping wins; otherwise attribute to the provider we found it on.
+            pid = _bucket_map.get(name, cfg["id"])
+            if name not in _bucket_map and cfg["id"] != ENV_PROVIDER_ID:
+                _bucket_map[name] = cfg["id"]
+            result.append({
+                "name": name,
+                "creation_date": b.get("CreationDate"),
+                "provider_id": pid,
+                "provider_name": _providers.get(pid, {}).get("name", cfg["name"]),
+            })
+    return result
 
 
 async def list_objects(bucket: str, prefix: str = "", delimiter: str = "/") -> dict:
-    client = _make_client()
+    client = _make_client(bucket=bucket)
     kwargs = {"Bucket": bucket, "Delimiter": delimiter}
     if prefix:
         kwargs["Prefix"] = prefix
@@ -158,7 +240,7 @@ async def list_objects(bucket: str, prefix: str = "", delimiter: str = "/") -> d
 
 
 async def put_object(bucket: str, key: str, data: bytes, content_type: str = DEFAULT_CONTENT_TYPE) -> None:
-    client = _make_client()
+    client = _make_client(bucket=bucket)
     await _run_sync(
         client.put_object,
         Bucket=bucket,
@@ -169,7 +251,7 @@ async def put_object(bucket: str, key: str, data: bytes, content_type: str = DEF
 
 
 async def delete_objects(bucket: str, keys: list[str]) -> dict:
-    client = _make_client()
+    client = _make_client(bucket=bucket)
     delete_payload = {"Objects": [{"Key": k} for k in keys], "Quiet": False}
     response = await _run_sync(client.delete_objects, Bucket=bucket, Delete=delete_payload)
     deleted = [d["Key"] for d in response.get("Deleted", [])]
@@ -179,7 +261,7 @@ async def delete_objects(bucket: str, keys: list[str]) -> dict:
 
 async def stream_object(bucket: str, key: str) -> tuple[AsyncGenerator[bytes, None], str, int]:
     """Returns (async_generator, content_type, content_length)."""
-    client = _make_client()
+    client = _make_client(bucket=bucket)
 
     try:
         response = await _run_sync(client.get_object, Bucket=bucket, Key=key)
@@ -215,7 +297,7 @@ class ObjectTooLarge(Exception):
 async def get_object_bytes(bucket: str, key: str, max_bytes: int | None = None) -> tuple[bytes, str]:
     """Read a full object into memory. Returns (data, content_type).
     Raises FileNotFoundError if missing, ObjectTooLarge if it exceeds max_bytes."""
-    client = _make_client()
+    client = _make_client(bucket=bucket)
     try:
         response = await _run_sync(client.get_object, Bucket=bucket, Key=key)
     except ClientError as e:
@@ -236,7 +318,7 @@ async def get_object_bytes(bucket: str, key: str, max_bytes: int | None = None) 
 
 async def get_bucket_size(bucket_name: str) -> dict:
     """Return total size and object count for a bucket."""
-    client = _make_client()
+    client = _make_client(bucket=bucket_name)
     total_size = 0
     object_count = 0
     continuation_token = None
@@ -259,7 +341,7 @@ async def get_bucket_size(bucket_name: str) -> dict:
 
 
 async def get_storage_stats() -> dict:
-    """Return aggregate storage stats across all buckets."""
+    """Return aggregate storage stats across all buckets (all providers)."""
     buckets = await list_buckets()
     bucket_stats = []
     total_size = 0
@@ -271,6 +353,8 @@ async def get_storage_stats() -> dict:
             "name": b["name"],
             "size": stats["size"],
             "object_count": stats["object_count"],
+            "provider_id": b.get("provider_id"),
+            "provider_name": b.get("provider_name"),
         })
         total_size += stats["size"]
         total_objects += stats["object_count"]
@@ -285,7 +369,7 @@ async def get_storage_stats() -> dict:
 
 async def create_multipart_upload(bucket: str, key: str, content_type: str = DEFAULT_CONTENT_TYPE) -> str:
     """Initiate a multipart upload. Returns the upload ID."""
-    client = _make_client()
+    client = _make_client(bucket=bucket)
     response = await _run_sync(
         client.create_multipart_upload,
         Bucket=bucket,
@@ -304,7 +388,7 @@ async def generate_presigned_upload_urls(
     """Generate presigned URLs for each part of a multipart upload."""
     if num_parts < 1 or num_parts > MAX_MULTIPART_PARTS:
         raise ValueError(f"num_parts must be between 1 and {MAX_MULTIPART_PARTS}")
-    client = _make_presign_client()
+    client = _make_presign_client(bucket=bucket)
     urls = []
     for part_number in range(1, num_parts + 1):
         url = await _run_sync(
@@ -326,7 +410,7 @@ async def complete_multipart_upload(
     bucket: str, key: str, upload_id: str, parts: list[dict]
 ) -> None:
     """Complete a multipart upload. parts = [{"PartNumber": 1, "ETag": "..."}]"""
-    client = _make_client()
+    client = _make_client(bucket=bucket)
     await _run_sync(
         client.complete_multipart_upload,
         Bucket=bucket,
@@ -338,7 +422,7 @@ async def complete_multipart_upload(
 
 async def abort_multipart_upload(bucket: str, key: str, upload_id: str) -> None:
     """Abort a multipart upload."""
-    client = _make_client()
+    client = _make_client(bucket=bucket)
     await _run_sync(
         client.abort_multipart_upload,
         Bucket=bucket,
@@ -349,7 +433,7 @@ async def abort_multipart_upload(bucket: str, key: str, upload_id: str) -> None:
 
 async def generate_presigned_download_url(bucket: str, key: str) -> str:
     """Generate a presigned download URL."""
-    client = _make_presign_client()
+    client = _make_presign_client(bucket=bucket)
     url = await _run_sync(
         client.generate_presigned_url,
         "get_object",
@@ -359,22 +443,37 @@ async def generate_presigned_download_url(bucket: str, key: str) -> str:
     return url
 
 
+def _same_provider(bucket_a: str, bucket_b: str) -> bool:
+    """Whether two buckets resolve to the same storage provider."""
+    return _resolve_cfg(bucket=bucket_a)["id"] == _resolve_cfg(bucket=bucket_b)["id"]
+
+
 async def copy_object(source_bucket: str, source_key: str, dest_bucket: str, dest_key: str) -> None:
-    """Copy an object from source to destination."""
-    client = _make_client()
-    copy_source = {"Bucket": source_bucket, "Key": source_key}
-    try:
-        await _run_sync(client.copy_object, Bucket=dest_bucket, Key=dest_key, CopySource=copy_source)
-    except ClientError as e:
-        if e.response["Error"]["Code"] == "NoSuchKey":
-            raise FileNotFoundError(f"Source object not found: {source_key}")
-        raise
+    """Copy an object from source to destination.
+
+    When source and destination live on the same provider, a server-side copy is
+    used. Across providers, the object is streamed through s3BEAR (download from
+    source, upload to destination)."""
+    if _same_provider(source_bucket, dest_bucket):
+        client = _make_client(bucket=dest_bucket)
+        copy_source = {"Bucket": source_bucket, "Key": source_key}
+        try:
+            await _run_sync(client.copy_object, Bucket=dest_bucket, Key=dest_key, CopySource=copy_source)
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "NoSuchKey":
+                raise FileNotFoundError(f"Source object not found: {source_key}")
+            raise
+        return
+
+    # Cross-provider copy: pull the object from source, push it to destination.
+    data, content_type = await get_object_bytes(source_bucket, source_key)
+    await put_object(dest_bucket, dest_key, data, content_type=content_type)
 
 
 async def move_object(source_bucket: str, source_key: str, dest_bucket: str, dest_key: str) -> None:
     """Move an object (copy + delete source)."""
     await copy_object(source_bucket, source_key, dest_bucket, dest_key)
-    client = _make_client()
+    client = _make_client(bucket=source_bucket)
     await _run_sync(client.delete_object, Bucket=source_bucket, Key=source_key)
 
 
@@ -419,7 +518,7 @@ async def bulk_copy_move(
 
 
 async def get_object_metadata(bucket: str, key: str) -> dict:
-    client = _make_client()
+    client = _make_client(bucket=bucket)
     try:
         response = await _run_sync(client.head_object, Bucket=bucket, Key=key)
         return {

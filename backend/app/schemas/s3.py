@@ -6,6 +6,8 @@ from pydantic import BaseModel
 class BucketInfo(BaseModel):
     name: str
     creation_date: Optional[datetime] = None
+    provider_id: Optional[str] = None
+    provider_name: Optional[str] = None
     can_list: bool
     can_read: bool
     can_write: bool

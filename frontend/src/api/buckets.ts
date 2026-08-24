@@ -3,6 +3,8 @@ import apiClient from './client'
 export interface BucketInfo {
   name: string
   creation_date: string | null
+  provider_id: string | null
+  provider_name: string | null
   can_list: boolean
   can_read: boolean
   can_write: boolean
@@ -29,8 +31,12 @@ export interface DeleteRequest {
 
 export const bucketsApi = {
   list: () => apiClient.get<BucketInfo[]>('/buckets'),
-  create: (name: string, quota_gb?: number) =>
-    apiClient.post('/buckets', { name, ...(quota_gb != null ? { quota_gb } : {}) }),
+  create: (name: string, quota_gb?: number, provider_id?: string) =>
+    apiClient.post('/buckets', {
+      name,
+      ...(quota_gb != null ? { quota_gb } : {}),
+      ...(provider_id ? { provider_id } : {}),
+    }),
   deleteBucket: (name: string) => apiClient.delete(`/buckets/${name}`),
   browse: (bucket: string, prefix: string = '') =>
     apiClient.get<BrowseResult>(`/buckets/${bucket}/browse`, { params: { prefix } }),

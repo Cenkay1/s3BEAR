@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react'
 import {
-  Button, Card, Drawer, Form, Input, InputNumber, message, Progress,
+  Button, Card, Drawer, Empty, Form, Input, InputNumber, message, Popconfirm, Progress,
   Segmented, Space, Switch, Table, Tag, Tooltip, Typography,
 } from 'antd'
 import {
   ApiOutlined, CloudOutlined, CloudServerOutlined, DatabaseOutlined,
-  EditOutlined, HddOutlined, LockOutlined, MailOutlined, PlusOutlined, ReloadOutlined,
-  SafetyOutlined, WindowsFilled,
+  DeleteOutlined, EditOutlined, HddOutlined, LockOutlined, MailOutlined, PlusOutlined, ReloadOutlined,
+  SafetyOutlined, StarFilled, StarOutlined, WindowsFilled,
 } from '@ant-design/icons'
 import {
-  AuthProvider, AzureAdConfig, S3Connection, settingsApi, StorageStats,
+  AuthProvider, AzureAdConfig, settingsApi, StorageStats,
 } from '../../api/settings'
+import { providersApi, StorageProvider } from '../../api/providers'
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
 function formatBytes(bytes: number) {
@@ -21,12 +22,6 @@ function formatBytes(bytes: number) {
 }
 const bytesToGb = (b: number) => b / (1024 ** 3)
 const mono = { fontFamily: "'Fira Code', monospace" }
-
-const PROVIDERS = [
-  { value: 'aws', label: 'AWS S3', icon: <CloudOutlined /> },
-  { value: 'minio', label: 'MinIO', icon: <HddOutlined /> },
-  { value: 'custom', label: 'Custom', icon: <CloudServerOutlined /> },
-]
 
 function SectionTitle({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
   return (
@@ -44,39 +39,54 @@ function SectionTitle({ icon, title, subtitle }: { icon: React.ReactNode; title:
 
 const fieldLabel = (t: string) => <span style={{ color: '#94A3B8', fontSize: 13 }}>{t}</span>
 
-/* ── Storage connection card + edit drawer ───────────────────────────────── */
-function StorageConnection() {
-  const [conn, setConn] = useState<S3Connection | null>(null)
+/* ── Storage providers manager (multi-backend) ───────────────────────────── */
+const PROVIDER_TYPE_LABEL: Record<string, string> = {
+  aws: 'AWS S3', minio: 'MinIO', ceph: 'Ceph', wasabi: 'Wasabi', custom: 'Custom',
+}
+const PROVIDER_TYPE_ICON: Record<string, React.ReactNode> = {
+  aws: <CloudOutlined />, minio: <HddOutlined />, ceph: <DatabaseOutlined />,
+  wasabi: <CloudOutlined />, custom: <CloudServerOutlined />,
+}
+
+function StorageProviders() {
+  const [providers, setProviders] = useState<StorageProvider[]>([])
+  const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
-  const [provider, setProvider] = useState('aws')
+  const [editing, setEditing] = useState<StorageProvider | null>(null)
+  const [ptype, setPtype] = useState('aws')
   const [useSsl, setUseSsl] = useState(true)
   const [testing, setTesting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form] = Form.useForm()
 
-  const load = () => settingsApi.getS3Connection().then((r) => { setConn(r.data) }).catch(() => {})
+  const load = () => {
+    setLoading(true)
+    providersApi.list().then((r) => setProviders(r.data)).catch(() => {}).finally(() => setLoading(false))
+  }
   useEffect(() => { load() }, [])
 
-  const openDrawer = () => {
-    if (!conn) return
-    setProvider(conn.provider || 'aws')
-    setUseSsl(conn.use_ssl)
+  const openCreate = () => {
+    setEditing(null); setPtype('aws'); setUseSsl(true)
+    form.resetFields()
+    form.setFieldsValue({ region: 'us-east-1' })
+    setOpen(true)
+  }
+  const openEdit = (p: StorageProvider) => {
+    setEditing(p); setPtype(p.provider_type); setUseSsl(p.use_ssl)
     form.setFieldsValue({
-      access_key_id: conn.configured ? conn.access_key_id : '',
-      region: conn.region || 'us-east-1',
-      endpoint_url: conn.endpoint_url,
-      presigned_base: conn.presigned_base,
-      secret_access_key: '',
+      name: p.name, access_key_id: p.access_key_id, region: p.region || 'us-east-1',
+      endpoint_url: p.endpoint_url, presigned_base: p.presigned_base, secret_access_key: '',
     })
     setOpen(true)
   }
 
   const buildPayload = (values: any) => ({
-    provider,
+    name: values.name,
+    provider_type: ptype,
     access_key_id: values.access_key_id,
     secret_access_key: values.secret_access_key || undefined,
     region: values.region || 'us-east-1',
-    endpoint_url: provider === 'aws' ? '' : (values.endpoint_url || ''),
+    endpoint_url: ptype === 'aws' ? '' : (values.endpoint_url || ''),
     presigned_base: values.presigned_base || '',
     use_ssl: useSsl,
   })
@@ -85,7 +95,7 @@ function StorageConnection() {
     try {
       const values = await form.validateFields()
       setTesting(true)
-      const res = await settingsApi.testS3Connection(buildPayload(values))
+      const res = await providersApi.test({ ...buildPayload(values), id: editing?.id })
       res.data.ok ? message.success('Connection successful') : message.error(res.data.error || 'Connection failed')
     } catch (e: any) { if (!e?.errorFields) message.error('Connection test failed') }
     finally { setTesting(false) }
@@ -94,73 +104,120 @@ function StorageConnection() {
   const handleSave = async (values: any) => {
     setSaving(true)
     try {
-      const res = await settingsApi.updateS3Connection(buildPayload(values))
-      setConn(res.data); setOpen(false); message.success('Storage connection saved')
-    } catch (e: any) { message.error(e.response?.data?.detail || 'Failed to save connection') }
+      if (editing) {
+        await providersApi.update(editing.id, buildPayload(values))
+        message.success('Provider updated')
+      } else {
+        await providersApi.create({ ...buildPayload(values), is_default: providers.length === 0 } as any)
+        message.success('Provider added')
+      }
+      setOpen(false); load()
+    } catch (e: any) { message.error(e.response?.data?.detail || 'Failed to save provider') }
     finally { setSaving(false) }
   }
 
-  const providerLabel = conn ? (PROVIDERS.find((p) => p.value === conn.provider)?.label || conn.provider) : ''
-  const showEndpoint = provider !== 'aws'
-  const editingSecret = conn?.configured && conn?.has_secret
+  const handleDelete = async (p: StorageProvider) => {
+    try { await providersApi.remove(p.id); message.success(`Provider '${p.name}' deleted`); load() }
+    catch (e: any) { message.error(e.response?.data?.detail || 'Failed to delete') }
+  }
+  const handleSetDefault = async (p: StorageProvider) => {
+    try { await providersApi.setDefault(p.id); load() }
+    catch (e: any) { message.error(e.response?.data?.detail || 'Failed') }
+  }
+
+  const showEndpoint = ptype !== 'aws'
+  const editingSecret = !!editing && editing.has_secret
 
   return (
     <>
-      <Card>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-            <div style={{ width: 46, height: 46, borderRadius: 12, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60A5FA', fontSize: 22, flexShrink: 0 }}>
-              <CloudServerOutlined />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ color: '#E6EDF3', fontWeight: 600, fontSize: 15 }}>{conn?.configured ? providerLabel : 'Not connected'}</span>
-                {conn?.configured
-                  ? <Tag color="success" style={{ borderRadius: 6, margin: 0 }}>Connected</Tag>
-                  : <Tag color="warning" style={{ borderRadius: 6, margin: 0 }}>Using env defaults</Tag>}
+      <Card
+        loading={loading}
+        title={<span style={{ color: '#E6EDF3' }}>Storage Providers</span>}
+        extra={<Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Provider</Button>}
+      >
+        {providers.length === 0 ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={<span style={{ color: '#94A3B8' }}>No providers yet. Add one to route buckets to specific S3 backends.<br />Until then, the environment S3 config is used.</span>}
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {providers.map((p) => (
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#121821', border: '1px solid #232C3A', borderRadius: 12, padding: '14px 16px' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 11, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60A5FA', fontSize: 20, flexShrink: 0 }}>
+                  {PROVIDER_TYPE_ICON[p.provider_type] || <CloudServerOutlined />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ color: '#E6EDF3', fontWeight: 600, fontSize: 15 }}>{p.name}</span>
+                    <Tag style={{ borderRadius: 6, margin: 0 }}>{PROVIDER_TYPE_LABEL[p.provider_type] || p.provider_type}</Tag>
+                    {p.is_default && <Tag icon={<StarFilled />} color="gold" style={{ borderRadius: 6, margin: 0 }}>Default</Tag>}
+                    <Tag color="blue" style={{ borderRadius: 6, margin: 0 }}>{p.bucket_count} bucket{p.bucket_count === 1 ? '' : 's'}</Tag>
+                  </div>
+                  <div style={{ ...mono, color: '#94A3B8', fontSize: 12, marginTop: 6 }}>
+                    {p.endpoint_url || `https://s3.${p.region}.amazonaws.com`}
+                  </div>
+                  <div style={{ ...mono, color: '#64748B', fontSize: 12, marginTop: 2 }}>
+                    {p.access_key_id ? p.access_key_id.slice(0, 6) + '••••••••' : '—'} · {p.region}
+                  </div>
+                </div>
+                <Space>
+                  {!p.is_default && (
+                    <Tooltip title="Set as default">
+                      <Button type="text" icon={<StarOutlined />} onClick={() => handleSetDefault(p)} />
+                    </Tooltip>
+                  )}
+                  <Button type="primary" ghost size="small" icon={<EditOutlined />} onClick={() => openEdit(p)}>Edit</Button>
+                  <Popconfirm
+                    title={`Delete '${p.name}'?`}
+                    description={p.bucket_count > 0 ? 'This provider has buckets attached and cannot be deleted.' : 'This cannot be undone.'}
+                    okButtonProps={{ danger: true, disabled: p.bucket_count > 0 }}
+                    onConfirm={() => handleDelete(p)}
+                  >
+                    <Button type="text" danger size="small" icon={<DeleteOutlined />} />
+                  </Popconfirm>
+                </Space>
               </div>
-              <div style={{ ...mono, color: '#94A3B8', fontSize: 12, marginTop: 6 }}>
-                {conn?.endpoint_url || (conn ? `https://s3.${conn.region}.amazonaws.com` : '—')}
-              </div>
-              <div style={{ ...mono, color: '#64748B', fontSize: 12, marginTop: 2 }}>
-                {conn?.access_key_id ? conn.access_key_id.slice(0, 6) + '••••••••' : '—'} · {conn?.region}
-              </div>
-            </div>
+            ))}
           </div>
-          <Button type="primary" ghost icon={conn?.configured ? <EditOutlined /> : <PlusOutlined />} onClick={openDrawer} style={{ flexShrink: 0 }}>
-            {conn?.configured ? 'Edit' : 'Connect'}
-          </Button>
-        </div>
+        )}
       </Card>
 
       <Drawer
-        title={conn?.configured ? 'Edit Storage Connection' : 'Connect to Storage'}
+        title={editing ? `Edit ${editing.name}` : 'Add Storage Provider'}
         open={open}
         onClose={() => setOpen(false)}
         width={460}
         destroyOnClose
       >
-        <div style={{ color: '#94A3B8', fontSize: 13, marginBottom: 20 }}>Enter your credentials to access your buckets.</div>
+        <div style={{ color: '#94A3B8', fontSize: 13, marginBottom: 20 }}>Register an S3-compatible backend. Buckets are bound to a provider when created.</div>
 
-        <div style={{ color: '#94A3B8', fontSize: 12, fontWeight: 600, letterSpacing: '0.06em', marginBottom: 8 }}>PROVIDER</div>
+        <div style={{ color: '#94A3B8', fontSize: 12, fontWeight: 600, letterSpacing: '0.06em', marginBottom: 8 }}>PROVIDER TYPE</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 22 }}>
-          {PROVIDERS.map((p) => {
-            const active = provider === p.value
+          {[{ value: 'aws', label: 'AWS S3', icon: <CloudOutlined /> },
+            { value: 'minio', label: 'MinIO', icon: <HddOutlined /> },
+            { value: 'ceph', label: 'Ceph', icon: <DatabaseOutlined /> },
+            { value: 'wasabi', label: 'Wasabi', icon: <CloudOutlined /> },
+            { value: 'custom', label: 'Custom', icon: <CloudServerOutlined /> }].map((p) => {
+            const active = ptype === p.value
             return (
-              <div key={p.value} onClick={() => setProvider(p.value)} style={{
-                cursor: 'pointer', textAlign: 'center', padding: '14px 6px', borderRadius: 10,
+              <div key={p.value} onClick={() => setPtype(p.value)} style={{
+                cursor: 'pointer', textAlign: 'center', padding: '12px 6px', borderRadius: 10,
                 background: active ? 'rgba(59,130,246,0.12)' : '#1A2230',
                 border: `1px solid ${active ? '#3B82F6' : '#232C3A'}`,
                 color: active ? '#60A5FA' : '#94A3B8', transition: 'all 150ms ease',
               }}>
-                <div style={{ fontSize: 20, marginBottom: 6 }}>{p.icon}</div>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>{p.label}</div>
+                <div style={{ fontSize: 18, marginBottom: 4 }}>{p.icon}</div>
+                <div style={{ fontSize: 12, fontWeight: 500 }}>{p.label}</div>
               </div>
             )
           })}
         </div>
 
         <Form form={form} layout="vertical" onFinish={handleSave} requiredMark={false}>
+          <Form.Item name="name" label={fieldLabel('Display Name')} rules={[{ required: true, message: 'Required' }]}>
+            <Input prefix={<CloudServerOutlined style={{ color: '#64748B' }} />} placeholder="e.g. Production AWS, Local MinIO" style={{ height: 44 }} />
+          </Form.Item>
           <Form.Item name="access_key_id" label={fieldLabel('Access Key ID')} rules={[{ required: true, message: 'Required' }]}>
             <Input prefix={<ApiOutlined style={{ color: '#64748B' }} />} placeholder="AKIAIOSFODNN7EXAMPLE" style={{ height: 44, ...mono }} />
           </Form.Item>
@@ -173,7 +230,7 @@ function StorageConnection() {
             <Input placeholder="us-east-1" style={{ height: 44, ...mono }} />
           </Form.Item>
           {showEndpoint && (
-            <Form.Item name="endpoint_url" label={fieldLabel('Endpoint URL')} rules={[{ required: true, message: 'Endpoint is required for MinIO / Custom' }]}>
+            <Form.Item name="endpoint_url" label={fieldLabel('Endpoint URL')} rules={[{ required: true, message: 'Endpoint is required for non-AWS providers' }]}>
               <Input placeholder="http://minio:9000" style={{ height: 44, ...mono }} />
             </Form.Item>
           )}
@@ -189,7 +246,7 @@ function StorageConnection() {
 
           <div style={{ display: 'flex', gap: 10 }}>
             <Button style={{ flex: 1 }} onClick={handleTest} loading={testing}>Test</Button>
-            <Button style={{ flex: 1 }} type="primary" htmlType="submit" loading={saving}>Save</Button>
+            <Button style={{ flex: 1 }} type="primary" htmlType="submit" loading={saving}>{editing ? 'Save' : 'Add'}</Button>
           </div>
         </Form>
       </Drawer>
@@ -227,6 +284,7 @@ function StorageUsage() {
 
   const columns = [
     { title: 'Bucket', dataIndex: 'name', key: 'name', render: (v: string) => <span style={{ ...mono, fontSize: 12 }}><DatabaseOutlined style={{ marginRight: 6, color: '#60A5FA' }} />{v}</span> },
+    { title: 'Provider', dataIndex: 'provider_name', key: 'provider', width: 130, render: (v: string | null) => v ? <Tag icon={<CloudServerOutlined />} color="blue" style={{ fontSize: 11 }}>{v}</Tag> : <span style={{ color: '#475569' }}>—</span> },
     { title: 'Size', dataIndex: 'size', key: 'size', width: 110, render: (v: number) => <span style={{ ...mono, fontSize: 12, color: '#94A3B8' }}>{formatBytes(v)}</span>, sorter: (a: any, b: any) => a.size - b.size },
     { title: 'Objects', dataIndex: 'object_count', key: 'oc', width: 80, render: (v: number) => <span style={{ ...mono, fontSize: 12, color: '#94A3B8' }}>{v}</span> },
     {
@@ -458,8 +516,8 @@ export default function SettingsPage() {
       {tab === 'storage' ? (
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
           <div>
-            <SectionTitle icon={<CloudServerOutlined />} title="Storage Connection" subtitle="The S3-compatible backend s3BEAR connects to." />
-            <StorageConnection />
+            <SectionTitle icon={<CloudServerOutlined />} title="Storage Providers" subtitle="S3-compatible backends s3BEAR can route buckets to." />
+            <StorageProviders />
           </div>
           <StorageUsage />
         </Space>
