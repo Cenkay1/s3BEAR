@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -16,6 +17,8 @@ from app.schemas.settings import (
 )
 from app.services import s3 as s3_service
 from app.services.provider_registry import reload_registry
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -269,8 +272,9 @@ async def update_s3_connection(
     # Validate before persisting so a bad credential never replaces a working one.
     try:
         await s3_service.test_config(cfg)
-    except Exception as e:  # noqa: BLE001
-        raise HTTPException(status_code=400, detail=f"Connection test failed: {str(e)[:200]}")
+    except Exception:  # noqa: BLE001
+        logger.warning("S3 connection test failed during update", exc_info=True)
+        raise HTTPException(status_code=400, detail="Connection test failed. Check server logs for details.")
 
     if provider is None:
         provider = StorageProvider(name="Default", is_default=True)
@@ -304,8 +308,9 @@ async def test_s3_connection(
     }
     try:
         await s3_service.test_config(cfg)
-    except Exception as e:  # noqa: BLE001
-        return {"ok": False, "error": str(e)[:200]}
+    except Exception:  # noqa: BLE001
+        logger.warning("S3 connection test failed", exc_info=True)
+        return {"ok": False, "error": "Connection test failed. Check server logs for details."}
     return {"ok": True, "error": None}
 
 

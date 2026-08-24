@@ -27,7 +27,13 @@ async def _seed_default_admin() -> None:
         password = settings.DEFAULT_ADMIN_PASSWORD
         if not password or password == "admin":
             password = secrets_module.token_urlsafe(16)
-            logger.warning("Generated random admin password: %s", password)
+            # Do not persist or log the generated password in cleartext.
+            # Operators should provide DEFAULT_ADMIN_PASSWORD via a secure secret source.
+            logger.warning(
+                "No admin password configured; generated a random one for this startup "
+                "without persisting it. Set DEFAULT_ADMIN_PASSWORD via a secure secret "
+                "store to control and retain admin access."
+            )
 
         admin = User(
             email=settings.DEFAULT_ADMIN_EMAIL,
