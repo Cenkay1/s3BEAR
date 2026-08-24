@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Button,
   Checkbox,
@@ -7,7 +7,6 @@ import {
   Input,
   List,
   message,
-  Popconfirm,
   Select,
   Space,
   Spin,
@@ -16,9 +15,10 @@ import {
   Tag,
   Typography,
 } from 'antd'
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import { usersApi, groupsApi, UserRead, UserCreate, UserUpdate, EntraUser, GroupRead } from '../../api/admin'
 import { settingsApi, AuthSettings } from '../../api/settings'
+import { C, mono, PageHeader, EditDrawer, RowActions } from '../../components/ui'
 import dayjs from 'dayjs'
 
 type CreateMode = 'entra' | 'service'
@@ -173,16 +173,14 @@ export default function UsersPage() {
     },
     { title: 'Created', dataIndex: 'created_at', width: 120, render: (v: string) => dayjs(v).format('YYYY-MM-DD') },
     {
-      title: 'Actions',
+      title: '',
       key: 'actions',
-      width: 150,
+      width: 56,
       render: (_: any, r: UserRead) => (
-        <Space>
-          <Button size="small" onClick={() => openEdit(r)}>Edit</Button>
-          <Popconfirm title="Delete user?" onConfirm={() => handleDelete(r.id)}>
-            <Button size="small" danger>Delete</Button>
-          </Popconfirm>
-        </Space>
+        <RowActions actions={[
+          { key: 'edit', label: 'Edit', icon: <EditOutlined />, onClick: () => openEdit(r) },
+          { key: 'delete', label: 'Delete', icon: <DeleteOutlined />, danger: true, confirm: `Delete '${r.display_name || r.email}'?`, onClick: () => handleDelete(r.id) },
+        ]} />
       ),
     },
   ]
@@ -205,24 +203,26 @@ export default function UsersPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div>
-          <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 22, fontFamily: "'Inter', sans-serif" }}>Users</Typography.Title>
-          <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2, fontFamily: "'Fira Code', monospace" }}>{users.length} user{users.length !== 1 ? 's' : ''}</div>
-        </div>
-        <Button icon={<PlusOutlined />} type="primary" onClick={openCreate} style={{ fontWeight: 600, height: 40 }}>Add User</Button>
-      </div>
+      <PageHeader
+        title="Users"
+        subtitle={`${users.length} user${users.length !== 1 ? 's' : ''}`}
+        actions={<Button icon={<PlusOutlined />} type="primary" onClick={openCreate} style={{ fontWeight: 600, height: 40 }}>Add User</Button>}
+      />
       <Table rowKey="id" columns={columns} dataSource={users} loading={loading} />
 
-      {/* Edit drawer */}
-      <Drawer
+      {/* Edit drawer — delete lives inside */}
+      <EditDrawer
         open={modalOpen}
-        title="Edit User"
         onClose={() => setModalOpen(false)}
-        width={440}
-        destroyOnClose
-        extra={<Space><Button onClick={() => setModalOpen(false)}>Cancel</Button><Button type="primary" onClick={() => form.submit()}>Save</Button></Space>}
+        title={editUser ? `Edit ${editUser.display_name || editUser.email}` : 'Edit User'}
+        onSubmit={() => form.submit()}
+        onDelete={editUser ? () => { handleDelete(editUser.id); setModalOpen(false) } : undefined}
+        deleteLabel="Delete user"
+        deleteConfirm="This permanently removes the user."
       >
+        {editUser && (
+          <div style={{ ...mono, fontSize: 12, color: C.dim, marginBottom: 16 }}>{editUser.email}</div>
+        )}
         <Form form={form} layout="vertical" onFinish={handleEditSubmit}>
           <Form.Item name="display_name" label="Display Name">
             <Input />
@@ -241,7 +241,7 @@ export default function UsersPage() {
             <Input.Password placeholder="Leave empty to keep unchanged" />
           </Form.Item>
         </Form>
-      </Drawer>
+      </EditDrawer>
 
       {/* Create / Import drawer */}
       <Drawer

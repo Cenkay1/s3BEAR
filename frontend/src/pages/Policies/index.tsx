@@ -1,21 +1,19 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Button,
-  Drawer,
   Form,
   Input,
   InputNumber,
   message,
-  Popconfirm,
   Select,
   Space,
   Switch,
   Table,
   Tag,
-  Typography,
 } from 'antd'
-import { PlayCircleOutlined, PlusOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, PlayCircleOutlined, PlusOutlined } from '@ant-design/icons'
 import { policiesApi, CleanupPolicy, PolicyCreate } from '../../api/admin'
+import { PageHeader, EditDrawer, RowActions } from '../../components/ui'
 import dayjs from 'dayjs'
 
 export default function PoliciesPage() {
@@ -92,43 +90,45 @@ export default function PoliciesPage() {
       render: (v: string | null) => v ? dayjs(v).format('YYYY-MM-DD HH:mm') : '-',
     },
     {
-      title: 'Actions',
+      title: '',
       key: 'actions',
+      width: 56,
       render: (_: any, r: CleanupPolicy) => (
-        <Space>
-          <Button size="small" icon={<PlayCircleOutlined />} onClick={() => handleRun(r.id)}>Run</Button>
-          <Button size="small" onClick={() => openEdit(r)}>Edit</Button>
-          <Popconfirm title="Delete policy?" onConfirm={() => policiesApi.delete(r.id).then(() => { message.success('Deleted'); load() })}>
-            <Button size="small" danger>Delete</Button>
-          </Popconfirm>
-        </Space>
+        <RowActions actions={[
+          { key: 'run', label: 'Run now', icon: <PlayCircleOutlined />, onClick: () => handleRun(r.id) },
+          { key: 'edit', label: 'Edit', icon: <EditOutlined />, onClick: () => openEdit(r) },
+          { key: 'delete', label: 'Delete', icon: <DeleteOutlined />, danger: true, confirm: `Delete '${r.name}'?`, onClick: () => deleteRow(r.id) },
+        ]} />
       ),
     },
   ]
 
+  const deleteRow = (id: string) => {
+    policiesApi.delete(id).then(() => { message.success('Deleted'); load() })
+  }
+
+  const handleDelete = () => {
+    if (!editPolicy) return
+    policiesApi.delete(editPolicy.id).then(() => { message.success('Deleted'); setModalOpen(false); load() })
+  }
+
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div>
-          <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 22, fontFamily: "'Inter', sans-serif" }}>Cleanup Policies</Typography.Title>
-          <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2, fontFamily: "'Fira Code', monospace" }}>{policies.length} polic{policies.length !== 1 ? 'ies' : 'y'}</div>
-        </div>
-        <Button icon={<PlusOutlined />} type="primary" onClick={openCreate} style={{ fontWeight: 600, height: 40 }}>New Policy</Button>
-      </div>
+      <PageHeader
+        title="Policies"
+        subtitle={`${policies.length} cleanup polic${policies.length !== 1 ? 'ies' : 'y'}`}
+        actions={<Button icon={<PlusOutlined />} type="primary" onClick={openCreate} style={{ fontWeight: 600, height: 40 }}>New Policy</Button>}
+      />
       <Table rowKey="id" columns={columns} dataSource={policies} loading={loading} />
 
-      <Drawer
+      <EditDrawer
         open={modalOpen}
-        title={editPolicy ? 'Edit Policy' : 'New Policy'}
         onClose={() => setModalOpen(false)}
-        width={460}
-        destroyOnClose
-        extra={
-          <Space>
-            <Button onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button type="primary" onClick={() => form.submit()}>Save</Button>
-          </Space>
-        }
+        title={editPolicy ? `Edit ${editPolicy.name}` : 'New Policy'}
+        onSubmit={() => form.submit()}
+        submitLabel={editPolicy ? 'Save' : 'Create'}
+        onDelete={editPolicy ? handleDelete : undefined}
+        deleteLabel="Delete policy"
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item name="name" label="Name" rules={[{ required: true }]}>
@@ -150,7 +150,7 @@ export default function PoliciesPage() {
             <Switch defaultChecked />
           </Form.Item>
         </Form>
-      </Drawer>
+      </EditDrawer>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { DatePicker, Select, Space, Table, Tag, Typography } from 'antd'
+import { DatePicker, Select, Space, Table, Tag } from 'antd'
 import { auditApi, AuditEntry, AuditFilters } from '../../api/audit'
+import { PageHeader } from '../../components/ui'
 import dayjs from 'dayjs'
 
 const ACTION_COLORS: Record<string, string> = {
@@ -120,10 +121,7 @@ export default function AuditLogPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
-        <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 22, fontFamily: "'Inter', sans-serif" }}>Audit Log</Typography.Title>
-        <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2, fontFamily: "'Fira Code', monospace" }}>{total} event{total !== 1 ? 's' : ''}</div>
-      </div>
+      <PageHeader title="Logs" subtitle={`${total} event${total !== 1 ? 's' : ''}`} />
 
       {/* Filters */}
       <Space wrap style={{ marginBottom: 16 }}>

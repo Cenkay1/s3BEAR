@@ -4,19 +4,16 @@ import {
   Button,
   Input,
   message,
-  Modal,
-  Popconfirm,
   Select,
   Space,
   Table,
   Tag,
   Typography,
 } from 'antd'
-import { CopyOutlined, PlusOutlined } from '@ant-design/icons'
+import { CopyOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { ApiToken, tokensApi, TokenCreateResponse } from '../../api/tokens'
-
-const mono = { fontFamily: "'Fira Code', monospace" }
+import { C, mono, PageHeader, EditDrawer, RowActions } from '../../components/ui'
 
 const EXPIRY_OPTIONS = [
   { label: '30 days', value: '30d' },
@@ -132,33 +129,23 @@ export default function TokensPage() {
     {
       title: '',
       key: 'actions',
-      width: 90,
+      width: 56,
       render: (_: unknown, t: ApiToken) =>
         t.revoked ? null : (
-          <Popconfirm
-            title="Revoke this token?"
-            description="Any client using it will stop working immediately."
-            onConfirm={() => handleRevoke(t.id)}
-            okText="Revoke"
-            okButtonProps={{ danger: true }}
-          >
-            <Button size="small" type="text" danger>Revoke</Button>
-          </Popconfirm>
+          <RowActions actions={[
+            { key: 'revoke', label: 'Revoke', icon: <DeleteOutlined />, danger: true, confirm: 'Revoke this token? Any client using it stops working immediately.', onClick: () => handleRevoke(t.id) },
+          ]} />
         ),
     },
   ]
 
   return (
     <div>
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-        <div>
-          <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 22, fontFamily: "'Inter', sans-serif" }}>API Tokens</Typography.Title>
-          <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2, ...mono }}>
-            Personal access tokens act as you and inherit your permissions.
-          </div>
-        </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>New token</Button>
-      </div>
+      <PageHeader
+        title="Tokens"
+        subtitle="Personal access tokens act as you and inherit your permissions."
+        actions={<Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>New token</Button>}
+      />
 
       <Table
         rowKey="id"
@@ -169,20 +156,19 @@ export default function TokensPage() {
         pagination={{ pageSize: 50 }}
       />
 
-      <Modal
+      <EditDrawer
         open={createOpen}
+        onClose={closeCreate}
         title="New API token"
-        onCancel={closeCreate}
-        footer={created ? [<Button key="done" type="primary" onClick={closeCreate}>Done</Button>] : undefined}
-        onOk={handleCreate}
-        confirmLoading={creating}
-        okText="Create"
-        okButtonProps={created ? { style: { display: 'none' } } : undefined}
+        onSubmit={created ? undefined : handleCreate}
+        submitLabel="Create"
+        submitLoading={creating}
+        hideFooter={!!created}
       >
         {!created ? (
-          <Space direction="vertical" style={{ width: '100%', marginTop: 8 }} size={14}>
+          <Space direction="vertical" style={{ width: '100%' }} size={14}>
             <div>
-              <div style={{ color: '#94A3B8', fontSize: 11, ...mono, marginBottom: 4 }}>name</div>
+              <div style={{ color: C.muted, fontSize: 11, ...mono, marginBottom: 4 }}>name</div>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -191,12 +177,12 @@ export default function TokensPage() {
               />
             </div>
             <div>
-              <div style={{ color: '#94A3B8', fontSize: 11, ...mono, marginBottom: 4 }}>expires</div>
+              <div style={{ color: C.muted, fontSize: 11, ...mono, marginBottom: 4 }}>expires</div>
               <Select value={expiresIn} onChange={setExpiresIn} options={EXPIRY_OPTIONS} style={{ width: '100%' }} />
             </div>
           </Space>
         ) : (
-          <Space direction="vertical" style={{ width: '100%', marginTop: 8 }} size={12}>
+          <Space direction="vertical" style={{ width: '100%' }} size={12}>
             <Alert
               type="warning"
               showIcon
@@ -218,9 +204,10 @@ export default function TokensPage() {
             <Typography.Text type="secondary" style={{ ...mono, fontSize: 11 }}>
               Use it as a Bearer token: <code>Authorization: Bearer {created.token_prefix}…</code>
             </Typography.Text>
+            <Button type="primary" block onClick={closeCreate} style={{ marginTop: 4 }}>Done</Button>
           </Space>
         )}
-      </Modal>
+      </EditDrawer>
     </div>
   )
 }

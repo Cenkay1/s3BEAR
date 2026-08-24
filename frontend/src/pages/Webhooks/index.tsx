@@ -5,16 +5,13 @@ import {
   Drawer,
   Input,
   message,
-  Modal,
-  Popconfirm,
   Select,
   Space,
   Switch,
   Table,
   Tag,
-  Typography,
 } from 'antd'
-import { CopyOutlined, PlusOutlined, SendOutlined } from '@ant-design/icons'
+import { CopyOutlined, DeleteOutlined, PlusOutlined, SendOutlined, UnorderedListOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import {
   Webhook,
@@ -23,8 +20,7 @@ import {
   WEBHOOK_EVENTS,
   webhooksApi,
 } from '../../api/webhooks'
-
-const mono = { fontFamily: "'Fira Code', monospace" }
+import { C, mono, PageHeader, EditDrawer, RowActions } from '../../components/ui'
 
 const DELIVERY_COLORS: Record<string, string> = {
   success: 'green',
@@ -153,15 +149,13 @@ export default function WebhooksPage() {
     {
       title: '',
       key: 'actions',
-      width: 210,
+      width: 56,
       render: (_: unknown, w: Webhook) => (
-        <Space size={4}>
-          <Button size="small" type="text" icon={<SendOutlined />} onClick={() => handleTest(w)}>test</Button>
-          <Button size="small" type="text" onClick={() => openDeliveries(w)}>deliveries</Button>
-          <Popconfirm title="Delete this webhook?" onConfirm={() => handleDelete(w.id)} okText="Delete" okButtonProps={{ danger: true }}>
-            <Button size="small" type="text" danger>delete</Button>
-          </Popconfirm>
-        </Space>
+        <RowActions actions={[
+          { key: 'test', label: 'Send test', icon: <SendOutlined />, onClick: () => handleTest(w) },
+          { key: 'deliveries', label: 'Deliveries', icon: <UnorderedListOutlined />, onClick: () => openDeliveries(w) },
+          { key: 'delete', label: 'Delete', icon: <DeleteOutlined />, danger: true, confirm: 'Delete this webhook?', onClick: () => handleDelete(w.id) },
+        ]} />
       ),
     },
   ]
@@ -177,40 +171,35 @@ export default function WebhooksPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-        <div>
-          <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 22, fontFamily: "'Inter', sans-serif" }}>Webhooks</Typography.Title>
-          <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2, ...mono }}>
-            HTTP callbacks on state-changing events, signed with HMAC-SHA256.
-          </div>
-        </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>New webhook</Button>
-      </div>
+      <PageHeader
+        title="Webhooks"
+        subtitle="HTTP callbacks on state-changing events, signed with HMAC-SHA256."
+        actions={<Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>New webhook</Button>}
+      />
 
       <Table rowKey="id" columns={columns} dataSource={data} loading={loading} size="small" pagination={false} />
 
-      <Modal
+      <EditDrawer
         open={createOpen}
+        onClose={closeCreate}
         title="New webhook"
-        onCancel={closeCreate}
-        onOk={handleCreate}
-        confirmLoading={creating}
-        okText="Create"
-        okButtonProps={created ? { style: { display: 'none' } } : undefined}
-        footer={created ? [<Button key="done" type="primary" onClick={closeCreate}>Done</Button>] : undefined}
+        onSubmit={created ? undefined : handleCreate}
+        submitLabel="Create"
+        submitLoading={creating}
+        hideFooter={!!created}
       >
         {!created ? (
-          <Space direction="vertical" style={{ width: '100%', marginTop: 8 }} size={14}>
+          <Space direction="vertical" style={{ width: '100%' }} size={14}>
             <div>
-              <div style={{ color: '#94A3B8', fontSize: 11, ...mono, marginBottom: 4 }}>name</div>
+              <div style={{ color: C.muted, fontSize: 11, ...mono, marginBottom: 4 }}>name</div>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. indexer" style={{ ...mono, fontSize: 12 }} />
             </div>
             <div>
-              <div style={{ color: '#94A3B8', fontSize: 11, ...mono, marginBottom: 4 }}>url</div>
+              <div style={{ color: C.muted, fontSize: 11, ...mono, marginBottom: 4 }}>url</div>
               <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/hook" style={{ ...mono, fontSize: 12 }} />
             </div>
             <div>
-              <div style={{ color: '#94A3B8', fontSize: 11, ...mono, marginBottom: 4 }}>events</div>
+              <div style={{ color: C.muted, fontSize: 11, ...mono, marginBottom: 4 }}>events</div>
               <Select
                 mode="multiple"
                 value={events}
@@ -222,7 +211,7 @@ export default function WebhooksPage() {
             </div>
           </Space>
         ) : (
-          <Space direction="vertical" style={{ width: '100%', marginTop: 8 }} size={12}>
+          <Space direction="vertical" style={{ width: '100%' }} size={12}>
             <Alert
               type="warning"
               showIcon
@@ -238,9 +227,10 @@ export default function WebhooksPage() {
                 Copy
               </Button>
             </Space.Compact>
+            <Button type="primary" block onClick={closeCreate} style={{ marginTop: 4 }}>Done</Button>
           </Space>
         )}
-      </Modal>
+      </EditDrawer>
 
       <Drawer
         title={deliveriesFor ? `Deliveries — ${deliveriesFor.name}` : 'Deliveries'}

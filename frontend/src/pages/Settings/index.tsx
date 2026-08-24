@@ -1,26 +1,20 @@
 import React, { useEffect, useState } from 'react'
 import {
-  Button, Card, Drawer, Empty, Form, Input, InputNumber, message, Popconfirm, Progress,
-  Segmented, Space, Switch, Table, Tag, Tooltip, Typography,
+  Button, Card, Drawer, Empty, Form, Input, message, Popconfirm,
+  Segmented, Space, Switch, Tag, Tooltip, Typography,
 } from 'antd'
 import {
   ApiOutlined, CloudOutlined, CloudServerOutlined, DatabaseOutlined,
-  DeleteOutlined, EditOutlined, HddOutlined, LockOutlined, MailOutlined, PlusOutlined, ReloadOutlined,
+  DeleteOutlined, EditOutlined, HddOutlined, LockOutlined, MailOutlined, PlusOutlined,
   SafetyOutlined, StarFilled, StarOutlined, WindowsFilled,
 } from '@ant-design/icons'
 import {
-  AuthProvider, AzureAdConfig, settingsApi, StorageStats,
+  AuthProvider, AzureAdConfig, settingsApi,
 } from '../../api/settings'
 import { providersApi, StorageProvider } from '../../api/providers'
+import { PageHeader } from '../../components/ui'
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
-function formatBytes(bytes: number) {
-  if (bytes === 0) return '0 B'
-  const k = 1024, sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
-}
-const bytesToGb = (b: number) => b / (1024 ** 3)
 const mono = { fontFamily: "'Fira Code', monospace" }
 
 function SectionTitle({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
@@ -254,101 +248,6 @@ function StorageProviders() {
   )
 }
 
-/* ── Storage usage / quotas ──────────────────────────────────────────────── */
-function StorageUsage() {
-  const [storage, setStorage] = useState<StorageStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [editGlobal, setEditGlobal] = useState(false)
-  const [globalVal, setGlobalVal] = useState(0)
-  const [editBucket, setEditBucket] = useState<string | null>(null)
-  const [bucketVal, setBucketVal] = useState(0)
-
-  const load = () => {
-    setLoading(true)
-    settingsApi.getStorageStats().then((r) => { setStorage(r.data); setGlobalVal(bytesToGb(r.data.quota_bytes)) })
-      .catch(() => {}).finally(() => setLoading(false))
-  }
-  useEffect(() => { load() }, [])
-
-  const saveGlobal = async () => {
-    try { await settingsApi.updateGlobalQuota(globalVal); message.success('Global quota updated'); setEditGlobal(false); load() }
-    catch (e: any) { message.error(e.response?.data?.detail || 'Failed') }
-  }
-  const saveBucket = async () => {
-    if (!editBucket) return
-    try { await settingsApi.updateBucketQuota(editBucket, bucketVal); message.success('Quota updated'); setEditBucket(null); load() }
-    catch (e: any) { message.error(e.response?.data?.detail || 'Failed') }
-  }
-
-  const globalPct = storage && storage.quota_bytes > 0 ? Math.min(100, Math.round((storage.total_size / storage.quota_bytes) * 100)) : 0
-
-  const columns = [
-    { title: 'Bucket', dataIndex: 'name', key: 'name', render: (v: string) => <span style={{ ...mono, fontSize: 12 }}><DatabaseOutlined style={{ marginRight: 6, color: '#60A5FA' }} />{v}</span> },
-    { title: 'Provider', dataIndex: 'provider_name', key: 'provider', width: 130, render: (v: string | null) => v ? <Tag icon={<CloudServerOutlined />} color="blue" style={{ fontSize: 11 }}>{v}</Tag> : <span style={{ color: '#475569' }}>—</span> },
-    { title: 'Size', dataIndex: 'size', key: 'size', width: 110, render: (v: number) => <span style={{ ...mono, fontSize: 12, color: '#94A3B8' }}>{formatBytes(v)}</span>, sorter: (a: any, b: any) => a.size - b.size },
-    { title: 'Objects', dataIndex: 'object_count', key: 'oc', width: 80, render: (v: number) => <span style={{ ...mono, fontSize: 12, color: '#94A3B8' }}>{v}</span> },
-    {
-      title: 'Quota', key: 'quota', width: 160,
-      render: (_: any, r: any) => {
-        if (editBucket === r.name) return (
-          <Space size={4}><InputNumber size="small" min={0} step={0.5} value={bucketVal} onChange={(v) => setBucketVal(v || 0)} style={{ width: 70 }} />
-            <Button size="small" type="primary" onClick={saveBucket}>OK</Button><Button size="small" onClick={() => setEditBucket(null)}>✕</Button></Space>
-        )
-        const q = r.quota_bytes > 0 ? bytesToGb(r.quota_bytes) : 0
-        return <Space size={6}><span style={{ color: '#94A3B8' }}>{q > 0 ? `${q} GB` : 'No limit'}</span>
-          <Tooltip title="Edit quota"><Button type="text" size="small" icon={<EditOutlined />} onClick={() => { setEditBucket(r.name); setBucketVal(q) }} /></Tooltip></Space>
-      },
-    },
-    {
-      title: 'Usage', key: 'usage', width: 160,
-      render: (_: any, r: any) => {
-        if (r.quota_bytes > 0) { const p = Math.min(100, Math.round((r.size / r.quota_bytes) * 100)); return <Progress percent={p} size="small" status={p >= 90 ? 'exception' : 'normal'} /> }
-        const p = storage && storage.total_size > 0 ? Math.round((r.size / storage.total_size) * 100) : 0
-        return <Progress percent={p} size="small" strokeColor="#334155" />
-      },
-    },
-  ]
-
-  return (
-    <Card loading={loading} title={<span style={{ color: '#E6EDF3' }}>Storage Usage</span>}
-      extra={<Button icon={<ReloadOutlined />} size="small" onClick={load}>Refresh</Button>}>
-      {storage && (
-        <>
-          <div style={{ display: 'flex', gap: 28, marginBottom: 18, flexWrap: 'wrap' }}>
-            {[['Used', formatBytes(storage.total_size)], ['Objects', String(storage.total_objects)], ['Buckets', String(storage.bucket_count)],
-              ['Limit', storage.quota_bytes > 0 ? formatBytes(storage.quota_bytes) : 'Unlimited']].map(([k, v]) => (
-              <div key={k}>
-                <div style={{ color: '#64748B', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k}</div>
-                <div style={{ ...mono, color: '#E6EDF3', fontSize: 20, marginTop: 2 }}>{v}</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, padding: '10px 14px', background: '#1A2230', border: '1px solid #232C3A', borderRadius: 8 }}>
-            <span style={{ color: '#E6EDF3', fontWeight: 500 }}>Global storage limit</span>
-            {editGlobal ? (
-              <Space>
-                <InputNumber min={0} step={1} value={globalVal} onChange={(v) => setGlobalVal(v || 0)} style={{ width: 110 }} addonAfter="GB" />
-                <Button size="small" type="primary" onClick={saveGlobal}>Save</Button>
-                <Button size="small" onClick={() => setEditGlobal(false)}>Cancel</Button>
-                <Typography.Text type="secondary">(0 = unlimited)</Typography.Text>
-              </Space>
-            ) : (
-              <Space>
-                <span style={{ ...mono, color: '#94A3B8' }}>{storage.quota_bytes > 0 ? `${bytesToGb(storage.quota_bytes)} GB` : 'Unlimited'}</span>
-                <Button size="small" icon={<EditOutlined />} onClick={() => setEditGlobal(true)}>Edit</Button>
-              </Space>
-            )}
-            {storage.quota_bytes > 0 && <div style={{ flex: 1, minWidth: 120 }}><Progress percent={globalPct} status={globalPct >= 90 ? 'exception' : 'normal'} /></div>}
-          </div>
-
-          <Table rowKey="name" columns={columns} dataSource={storage.buckets} pagination={false} size="small" />
-        </>
-      )}
-    </Card>
-  )
-}
-
 /* ── Auth method row ─────────────────────────────────────────────────────── */
 function MethodRow(opts: {
   icon: React.ReactNode; name: string; desc: string; enabled: boolean
@@ -496,10 +395,7 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<string | number>('storage')
   return (
     <div style={{ maxWidth: 880, margin: '0 auto' }}>
-      <div style={{ marginBottom: 24 }}>
-        <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 26 }}>Settings</Typography.Title>
-        <div style={{ color: '#94A3B8', fontSize: 14, marginTop: 4 }}>Manage storage connections and authentication.</div>
-      </div>
+      <PageHeader title="Settings" subtitle="Manage storage connections and authentication." />
 
       <Segmented
         block
@@ -514,13 +410,10 @@ export default function SettingsPage() {
       />
 
       {tab === 'storage' ? (
-        <Space direction="vertical" size={16} style={{ width: '100%' }}>
-          <div>
-            <SectionTitle icon={<CloudServerOutlined />} title="Storage Providers" subtitle="S3-compatible backends s3BEAR can route buckets to." />
-            <StorageProviders />
-          </div>
-          <StorageUsage />
-        </Space>
+        <div>
+          <SectionTitle icon={<CloudServerOutlined />} title="Storage Providers" subtitle="S3-compatible backends s3BEAR can route buckets to." />
+          <StorageProviders />
+        </div>
       ) : (
         <div>
           <SectionTitle icon={<SafetyOutlined />} title="Authentication Methods" subtitle="Enable and configure how users sign in." />
