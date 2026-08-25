@@ -1,10 +1,16 @@
 import apiClient from './client'
 
+export interface BucketTag {
+  key: string
+  value: string
+}
+
 export interface BucketInfo {
   name: string
   creation_date: string | null
   provider_id: string | null
   provider_name: string | null
+  tags: BucketTag[]
   can_list: boolean
   can_read: boolean
   can_write: boolean
@@ -31,13 +37,17 @@ export interface DeleteRequest {
 
 export const bucketsApi = {
   list: () => apiClient.get<BucketInfo[]>('/buckets'),
-  create: (name: string, quota_gb?: number, provider_id?: string) =>
+  create: (name: string, quota_gb?: number, provider_id?: string, tags?: BucketTag[]) =>
     apiClient.post('/buckets', {
       name,
       ...(quota_gb != null ? { quota_gb } : {}),
       ...(provider_id ? { provider_id } : {}),
+      ...(tags && tags.length ? { tags } : {}),
     }),
   deleteBucket: (name: string) => apiClient.delete(`/buckets/${name}`),
+  getTags: (name: string) => apiClient.get<BucketTag[]>(`/buckets/${name}/tags`),
+  setTags: (name: string, tags: BucketTag[]) => apiClient.put<BucketTag[]>(`/buckets/${name}/tags`, { tags }),
+  suggestTags: () => apiClient.get<Record<string, string[]>>('/buckets/tags/suggest'),
   browse: (bucket: string, prefix: string = '') =>
     apiClient.get<BrowseResult>(`/buckets/${bucket}/browse`, { params: { prefix } }),
   upload: (bucket: string, file: File, prefix: string = '') => {

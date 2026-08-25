@@ -5,6 +5,7 @@ import {
   ApiOutlined,
   AuditOutlined,
   DatabaseOutlined,
+  LineChartOutlined,
   LinkOutlined,
   LogoutOutlined,
   SettingOutlined,
@@ -17,13 +18,15 @@ import { useAuthStore } from '../../store/auth'
 
 const { Sider, Content } = Layout
 
-const NAV_KEYS = ['buckets', 'shares', 'tokens', 'users', 'groups', 'policies', 'webhooks', 'audit', 'settings'] as const
+const NAV_KEYS = ['buckets', 'shares', 'tokens', 'users', 'groups', 'policies', 'webhooks', 'observability', 'audit', 'settings'] as const
 
 function resolveSelectedKey(pathname: string): string {
   return NAV_KEYS.find((key) => pathname.startsWith(`/${key}`)) ?? 'buckets'
 }
 
 const SIDER_W = 248
+
+type NavGroup = { label: string; items: { key: string; icon: React.ReactNode; label: React.ReactNode }[] }
 
 export default function AppLayout() {
   const location = useLocation()
@@ -32,19 +35,33 @@ export default function AppLayout() {
 
   const selectedKey = resolveSelectedKey(location.pathname)
 
-  const menuItems = [
-    { key: 'buckets', icon: <DatabaseOutlined />, label: <Link to="/buckets">Buckets</Link> },
-    { key: 'shares', icon: <LinkOutlined />, label: <Link to="/shares">Shares</Link> },
-    { key: 'tokens', icon: <ApiOutlined />, label: <Link to="/tokens">API Tokens</Link> },
+  const navGroups: NavGroup[] = [
+    {
+      label: 'Storage',
+      items: [
+        { key: 'buckets', icon: <DatabaseOutlined />, label: <Link to="/buckets">Buckets</Link> },
+        { key: 'shares', icon: <LinkOutlined />, label: <Link to="/shares">Shares</Link> },
+      ],
+    },
+    {
+      label: 'Access',
+      items: [
+        ...(user?.is_admin ? [{ key: 'users', icon: <UserOutlined />, label: <Link to="/users">Users</Link> }] : []),
+        ...(user?.is_admin ? [{ key: 'groups', icon: <TeamOutlined />, label: <Link to="/groups">Groups</Link> }] : []),
+        { key: 'tokens', icon: <ApiOutlined />, label: <Link to="/tokens">Tokens</Link> },
+      ],
+    },
     ...(user?.is_admin
-      ? [
-          { key: 'users', icon: <UserOutlined />, label: <Link to="/users">Users</Link> },
-          { key: 'groups', icon: <TeamOutlined />, label: <Link to="/groups">Permissions</Link> },
-          { key: 'policies', icon: <SettingOutlined />, label: <Link to="/policies">Policies</Link> },
-          { key: 'webhooks', icon: <ThunderboltOutlined />, label: <Link to="/webhooks">Webhooks</Link> },
-          { key: 'audit', icon: <AuditOutlined />, label: <Link to="/audit">Audit Logs</Link> },
-          { key: 'settings', icon: <ToolOutlined />, label: <Link to="/settings">Settings</Link> },
-        ]
+      ? [{
+          label: 'System',
+          items: [
+            { key: 'observability', icon: <LineChartOutlined />, label: <Link to="/observability">Observability</Link> },
+            { key: 'policies', icon: <SettingOutlined />, label: <Link to="/policies">Policies</Link> },
+            { key: 'webhooks', icon: <ThunderboltOutlined />, label: <Link to="/webhooks">Webhooks</Link> },
+            { key: 'audit', icon: <AuditOutlined />, label: <Link to="/audit">Logs</Link> },
+            { key: 'settings', icon: <ToolOutlined />, label: <Link to="/settings">Settings</Link> },
+          ],
+        }]
       : []),
   ]
 
@@ -89,13 +106,22 @@ export default function AppLayout() {
 
         <div style={{ height: 1, background: '#1A2230', margin: '4px 16px 12px' }} />
 
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          items={menuItems}
-          style={{ border: 'none', padding: '0 10px', background: 'transparent' }}
-        />
+        <div style={{ overflowY: 'auto', position: 'absolute', top: 128, bottom: 68, left: 0, right: 0 }}>
+          {navGroups.map((group) => (
+            <div key={group.label} style={{ marginBottom: 8 }}>
+              <div style={{ padding: '10px 22px 6px', color: '#64748B', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                {group.label}
+              </div>
+              <Menu
+                theme="dark"
+                mode="inline"
+                selectedKeys={[selectedKey]}
+                items={group.items}
+                style={{ border: 'none', padding: '0 10px', background: 'transparent' }}
+              />
+            </div>
+          ))}
+        </div>
 
         {/* User area */}
         <div

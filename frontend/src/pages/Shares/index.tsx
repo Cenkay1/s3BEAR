@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { Button, message, Popconfirm, Table, Tag, Typography } from 'antd'
+import { Button, message, Table, Tag } from 'antd'
 import { DeleteOutlined, ReloadOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { shareApi, ShareLink } from '../../api/share'
-
-const mono = { fontFamily: "'Fira Code', monospace" }
+import { mono, PageHeader, RowActions } from '../../components/ui'
 
 function statusTag(link: ShareLink): React.ReactNode {
   if (link.revoked) return <Tag color="red" style={{ ...mono, fontSize: 11 }}>revoked</Tag>
@@ -92,31 +91,23 @@ export default function SharesPage() {
     {
       title: '',
       key: 'actions',
-      width: 80,
+      width: 56,
       render: (_: unknown, link: ShareLink) =>
         link.revoked ? null : (
-          <Popconfirm
-            title="Revoke this link?"
-            description="The public URL will stop working immediately."
-            onConfirm={() => handleRevoke(link.id)}
-            okText="Revoke"
-            okButtonProps={{ danger: true }}
-          >
-            <Button size="small" type="text" danger icon={<DeleteOutlined />}>Revoke</Button>
-          </Popconfirm>
+          <RowActions actions={[
+            { key: 'revoke', label: 'Revoke', icon: <DeleteOutlined />, danger: true, confirm: 'Revoke this link? The public URL stops working immediately.', onClick: () => handleRevoke(link.id) },
+          ]} />
         ),
     },
   ]
 
   return (
     <div>
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-        <div>
-          <Typography.Title level={3} style={{ margin: 0, color: '#E6EDF3', fontWeight: 700, fontSize: 22, fontFamily: "'Inter', sans-serif" }}>Shares</Typography.Title>
-          <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2, ...mono }}>{data.length} link{data.length !== 1 ? 's' : ''}</div>
-        </div>
-        <Button icon={<ReloadOutlined />} onClick={load}>Refresh</Button>
-      </div>
+      <PageHeader
+        title="Shares"
+        subtitle={`${data.length} share link${data.length !== 1 ? 's' : ''}`}
+        actions={<Button icon={<ReloadOutlined />} onClick={load}>Refresh</Button>}
+      />
 
       <Table
         rowKey="id"

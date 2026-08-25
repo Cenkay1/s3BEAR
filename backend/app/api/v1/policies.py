@@ -102,9 +102,12 @@ async def run_policy_manually(
 
     run_result = await run_policy(
         policy_id=str(policy_id),
-        bucket_patterns=policy.bucket_patterns,
         prefix_filter=policy.prefix_filter,
         older_than_days=policy.older_than_days,
+        target_type=policy.target_type,
+        bucket_patterns=policy.bucket_patterns,
+        tag_key=policy.tag_key,
+        tag_value=policy.tag_value,
     )
 
     policy.last_run_at = datetime.now(timezone.utc)

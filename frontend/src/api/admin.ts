@@ -51,10 +51,15 @@ export interface GroupCreate {
 }
 
 // Policies
+export type PolicyTargetType = 'pattern' | 'tag'
+
 export interface CleanupPolicy {
   id: string
   name: string
+  target_type: PolicyTargetType
   bucket_patterns: string[]
+  tag_key: string | null
+  tag_value: string | null
   prefix_filter: string | null
   older_than_days: number | null
   cron_expression: string
@@ -67,7 +72,10 @@ export interface CleanupPolicy {
 
 export interface PolicyCreate {
   name: string
+  target_type: PolicyTargetType
   bucket_patterns: string[]
+  tag_key?: string | null
+  tag_value?: string | null
   prefix_filter?: string | null
   older_than_days?: number | null
   cron_expression?: string

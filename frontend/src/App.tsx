@@ -14,6 +14,7 @@ import PoliciesPage from './pages/Policies'
 import SettingsPage from './pages/Settings'
 import AuditLogPage from './pages/AuditLog'
 import WebhooksPage from './pages/Webhooks'
+import ObservabilityPage from './pages/Observability'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -89,6 +90,14 @@ export default function App() {
             element={
               <RequireAdmin>
                 <AuditLogPage />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="observability"
+            element={
+              <RequireAdmin>
+                <ObservabilityPage />
               </RequireAdmin>
             }
           />

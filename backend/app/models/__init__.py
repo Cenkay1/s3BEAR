@@ -8,5 +8,6 @@ from app.models.share import ShareLink
 from app.models.api_token import ApiToken
 from app.models.webhook import WebhookEndpoint, WebhookDelivery
 from app.models.provider import StorageProvider, ManagedBucket
+from app.models.bucket_tag import BucketTag
 
-__all__ = ["User", "UserGroup", "Group", "BucketPermission", "CleanupPolicy", "AppSetting", "AuditLog", "RefreshToken", "ShareLink", "ApiToken", "WebhookEndpoint", "WebhookDelivery", "StorageProvider", "ManagedBucket"]
+__all__ = ["User", "UserGroup", "Group", "BucketPermission", "CleanupPolicy", "AppSetting", "AuditLog", "RefreshToken", "ShareLink", "ApiToken", "WebhookEndpoint", "WebhookDelivery", "StorageProvider", "ManagedBucket", "BucketTag"]

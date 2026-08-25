@@ -3,11 +3,17 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class BucketTag(BaseModel):
+    key: str
+    value: str = ""
+
+
 class BucketInfo(BaseModel):
     name: str
     creation_date: Optional[datetime] = None
     provider_id: Optional[str] = None
     provider_name: Optional[str] = None
+    tags: list[BucketTag] = []
     can_list: bool
     can_read: bool
     can_write: bool

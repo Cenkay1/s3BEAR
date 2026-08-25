@@ -11,7 +11,8 @@ from app.api.deps import get_current_user, get_db, require_admin
 from app.models.user import User
 from app.models.settings import AppSetting
 from app.models.provider import StorageProvider, ManagedBucket
-from app.schemas.s3 import BucketInfo, BrowseResult, S3Object
+from app.models.bucket_tag import BucketTag as BucketTagModel
+from app.schemas.s3 import BucketInfo, BucketTag, BrowseResult, S3Object
 from app.services import s3 as s3_service
 from app.services.audit import log_audit, CREATE_BUCKET, DELETE_BUCKET
 
@@ -40,6 +41,7 @@ class CreateBucketRequest(BaseModel):
     name: str
     quota_gb: float | None = None
     provider_id: str | None = None  # which storage provider serves this bucket
+    tags: list[BucketTag] = []
 
     @field_validator("name")
     @classmethod
@@ -53,24 +55,54 @@ class CreateBucketRequest(BaseModel):
         return v
 
 
+class SetTagsRequest(BaseModel):
+    tags: list[BucketTag] = []
+
+
+def _clean_tags(tags: list[BucketTag]) -> list[BucketTag]:
+    """Drop blank keys and collapse duplicate keys (last one wins)."""
+    seen: dict[str, str] = {}
+    for t in tags:
+        k = t.key.strip()
+        if k:
+            seen[k] = t.value.strip()
+    return [BucketTag(key=k, value=v) for k, v in seen.items()]
+
+
+async def _tags_for(db: AsyncSession, bucket_names: list[str]) -> dict[str, list[BucketTag]]:
+    """Return {bucket_name: [BucketTag, ...]} for the given buckets."""
+    if not bucket_names:
+        return {}
+    rows = (await db.execute(
+        select(BucketTagModel).where(BucketTagModel.bucket_name.in_(bucket_names))
+    )).scalars().all()
+    out: dict[str, list[BucketTag]] = {}
+    for r in rows:
+        out.setdefault(r.bucket_name, []).append(BucketTag(key=r.key, value=r.value))
+    return out
+
+
 @router.get("", response_model=list[BucketInfo])
 async def list_buckets(
     current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     all_buckets = await s3_service.list_buckets()
+    visible = [b for b in all_buckets if any(_resolve_permissions(current_user, b["name"]).values())]
+    tags_by_bucket = await _tags_for(db, [b["name"] for b in visible])
     result = []
-    for bucket in all_buckets:
+    for bucket in visible:
         perms = _resolve_permissions(current_user, bucket["name"])
-        if any(perms.values()):  # only include if user has at least one permission
-            result.append(
-                BucketInfo(
-                    name=bucket["name"],
-                    creation_date=bucket.get("creation_date"),
-                    provider_id=bucket.get("provider_id"),
-                    provider_name=bucket.get("provider_name"),
-                    **perms,
-                )
+        result.append(
+            BucketInfo(
+                name=bucket["name"],
+                creation_date=bucket.get("creation_date"),
+                provider_id=bucket.get("provider_id"),
+                provider_name=bucket.get("provider_name"),
+                tags=tags_by_bucket.get(bucket["name"], []),
+                **perms,
             )
+        )
     return result
 
 
@@ -116,6 +148,9 @@ async def create_bucket(
         else:
             db.add(AppSetting(key=key, value=str(body.quota_gb)))
 
+    for t in _clean_tags(body.tags):
+        db.add(BucketTagModel(bucket_name=body.name, key=t.key, value=t.value))
+
     await log_audit(db, admin, CREATE_BUCKET, bucket=body.name,
                     details={"quota_gb": body.quota_gb, "provider": provider.name if provider else None},
                     ip_address=request.client.host if request.client else None)
@@ -144,11 +179,59 @@ async def delete_bucket(
     mb = (await db.execute(select(ManagedBucket).where(ManagedBucket.name == bucket_name))).scalar_one_or_none()
     if mb:
         await db.delete(mb)
+    await db.execute(
+        BucketTagModel.__table__.delete().where(BucketTagModel.bucket_name == bucket_name)
+    )
     s3_service.unregister_bucket(bucket_name)
 
     await log_audit(db, admin, DELETE_BUCKET, bucket=bucket_name,
                     ip_address=request.client.host if request.client else None)
     return {"deleted": bucket_name}
+
+
+@router.get("/tags/suggest")
+async def suggest_tags(
+    _: Annotated[User, Depends(require_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Return {key: [distinct values...]} across all buckets, for autocomplete."""
+    rows = (await db.execute(select(BucketTagModel))).scalars().all()
+    suggest: dict[str, list[str]] = {}
+    for r in rows:
+        vals = suggest.setdefault(r.key, [])
+        if r.value and r.value not in vals:
+            vals.append(r.value)
+    return suggest
+
+
+@router.get("/{bucket_name}/tags", response_model=list[BucketTag])
+async def get_bucket_tags(
+    bucket_name: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    perms = _resolve_permissions(current_user, bucket_name)
+    if not any(perms.values()):
+        raise HTTPException(status_code=403, detail="No access to this bucket")
+    return (await _tags_for(db, [bucket_name])).get(bucket_name, [])
+
+
+@router.put("/{bucket_name}/tags", response_model=list[BucketTag])
+async def set_bucket_tags(
+    bucket_name: str,
+    body: SetTagsRequest,
+    admin: Annotated[User, Depends(require_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Replace the full tag set for a bucket."""
+    await db.execute(
+        BucketTagModel.__table__.delete().where(BucketTagModel.bucket_name == bucket_name)
+    )
+    cleaned = _clean_tags(body.tags)
+    for t in cleaned:
+        db.add(BucketTagModel(bucket_name=bucket_name, key=t.key, value=t.value))
+    await db.flush()
+    return cleaned
 
 
 @router.get("/{bucket_name}/browse", response_model=BrowseResult, responses={403: {"description": "No list permission"}})
