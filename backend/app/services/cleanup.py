@@ -32,20 +32,42 @@ async def _delete_bucket_objects(
     return deleted_count, errors
 
 
+async def _buckets_matching_tag(tag_key: str, tag_value: Optional[str]) -> set[str]:
+    """Return bucket names that carry the given tag (value optional = any value)."""
+    from sqlalchemy import select
+    from app.core.database import AsyncSessionLocal
+    from app.models.bucket_tag import BucketTag
+
+    async with AsyncSessionLocal() as db:
+        stmt = select(BucketTag.bucket_name).where(BucketTag.key == tag_key)
+        if tag_value:
+            stmt = stmt.where(BucketTag.value == tag_value)
+        rows = (await db.execute(stmt)).scalars().all()
+    return set(rows)
+
+
 async def run_policy(
     policy_id: str,
-    bucket_patterns: list[str],
     prefix_filter: Optional[str],
     older_than_days: Optional[int],
+    target_type: str = "pattern",
+    bucket_patterns: Optional[list[str]] = None,
+    tag_key: Optional[str] = None,
+    tag_value: Optional[str] = None,
 ) -> dict:
     """Execute cleanup for a single policy. Returns dict with deleted_count and status."""
     all_buckets = await s3_service.list_buckets()
 
-    target_buckets = [
-        b["name"]
-        for b in all_buckets
-        if any(fnmatch(b["name"], pattern) for pattern in bucket_patterns)
-    ]
+    if target_type == "tag" and tag_key:
+        tagged = await _buckets_matching_tag(tag_key, tag_value)
+        target_buckets = [b["name"] for b in all_buckets if b["name"] in tagged]
+    else:
+        patterns = bucket_patterns or []
+        target_buckets = [
+            b["name"]
+            for b in all_buckets
+            if any(fnmatch(b["name"], pattern) for pattern in patterns)
+        ]
 
     cutoff = None
     if older_than_days is not None:

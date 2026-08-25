@@ -24,7 +24,8 @@ def get_scheduler() -> BackgroundScheduler:
     return _scheduler
 
 
-def _run_policy_sync(policy_id: str, bucket_patterns: list, prefix_filter, older_than_days):
+def _run_policy_sync(policy_id: str, bucket_patterns: list, prefix_filter, older_than_days,
+                     target_type: str = "pattern", tag_key=None, tag_value=None):
     """Sync wrapper for async cleanup, called by APScheduler."""
     from app.services.cleanup import run_policy
     from app.core.database import AsyncSessionLocal
@@ -34,9 +35,12 @@ def _run_policy_sync(policy_id: str, bucket_patterns: list, prefix_filter, older
     async def _inner():
         result = await run_policy(
             policy_id=policy_id,
-            bucket_patterns=bucket_patterns,
             prefix_filter=prefix_filter,
             older_than_days=older_than_days,
+            target_type=target_type,
+            bucket_patterns=bucket_patterns,
+            tag_key=tag_key,
+            tag_value=tag_value,
         )
         async with AsyncSessionLocal() as db:
             res = await db.execute(
@@ -55,7 +59,10 @@ def _run_policy_sync(policy_id: str, bucket_patterns: list, prefix_filter, older
                 details={
                     "policy_id": policy_id,
                     "policy_name": policy.name if policy else "unknown",
+                    "target_type": target_type,
                     "bucket_patterns": bucket_patterns,
+                    "tag_key": tag_key,
+                    "tag_value": tag_value,
                     "prefix_filter": prefix_filter,
                     "older_than_days": older_than_days,
                     "deleted_count": result["deleted_count"],
@@ -96,6 +103,9 @@ def reschedule_policy(policy) -> None:
         "bucket_patterns": policy.bucket_patterns,
         "prefix_filter": policy.prefix_filter,
         "older_than_days": policy.older_than_days,
+        "target_type": policy.target_type,
+        "tag_key": policy.tag_key,
+        "tag_value": policy.tag_value,
     }
 
     if scheduler.get_job(job_id):

@@ -117,7 +117,9 @@ export default function ObservabilityPage() {
 
   const policyColumns = [
     { title: 'Policy', dataIndex: 'name', key: 'name', render: (v: string) => <span style={{ color: C.text, fontWeight: 600 }}>{v}</span> },
-    { title: 'Patterns', key: 'patterns', render: (_: any, r: CleanupPolicy) => <Space size={4} wrap>{r.bucket_patterns.map((p) => <Tag key={p} style={{ ...mono, fontSize: 10 }}>{p}</Tag>)}</Space> },
+    { title: 'Target', key: 'target', render: (_: any, r: CleanupPolicy) => r.target_type === 'tag'
+      ? <Tag color="purple" style={{ ...mono, fontSize: 10 }}>tag: {r.tag_key}{r.tag_value ? `=${r.tag_value}` : ' (any)'}</Tag>
+      : <Space size={4} wrap>{r.bucket_patterns.map((p) => <Tag key={p} style={{ ...mono, fontSize: 10 }}>{p}</Tag>)}</Space> },
     { title: 'Schedule', dataIndex: 'cron_expression', key: 'cron', width: 130, render: (v: string) => <span style={{ ...mono, fontSize: 11, color: C.muted }}>{v}</span> },
     {
       title: 'Active', dataIndex: 'is_active', key: 'active', width: 80,

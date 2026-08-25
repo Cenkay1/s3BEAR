@@ -14,7 +14,11 @@ class CleanupPolicy(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Targeting mode: "pattern" (bucket_patterns) or "tag" (tag_key/tag_value). Exactly one.
+    target_type: Mapped[str] = mapped_column(String(20), nullable=False, default="pattern")
     bucket_patterns: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    tag_key: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    tag_value: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     prefix_filter: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     older_than_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     cron_expression: Mapped[str] = mapped_column(String(100), nullable=False, default="0 2 * * *")

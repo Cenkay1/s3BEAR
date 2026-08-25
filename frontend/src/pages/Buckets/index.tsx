@@ -1,7 +1,8 @@
+import type { CSSProperties } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Button, Form, Input, InputNumber, List, message, Popconfirm, Segmented, Select, Table, Tag } from 'antd'
-import { AppstoreOutlined, CloudServerOutlined, DatabaseOutlined, DeleteOutlined, PlusOutlined, RightOutlined, UnorderedListOutlined } from '@ant-design/icons'
+import { Button, Form, Input, InputNumber, List, message, Popconfirm, Segmented, Select, Table } from 'antd'
+import { AppstoreOutlined, CloseOutlined, CloudServerOutlined, DatabaseOutlined, DeleteOutlined, PlusOutlined, ReloadOutlined, RightOutlined, UnorderedListOutlined } from '@ant-design/icons'
 import { bucketsApi, BucketInfo, BucketTag } from '../../api/buckets'
 import { settingsApi, BucketStorageStat } from '../../api/settings'
 import { providersApi, StorageProvider } from '../../api/providers'
@@ -17,6 +18,13 @@ function formatBytes(bytes: number) {
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`
 }
+
+const chipStyle: CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 8, ...mono, fontSize: 12,
+  background: C.accentSoftBg, border: `1px solid ${C.accentSoftBorder}`, color: C.accentHover,
+  borderRadius: 8, padding: '4px 10px',
+}
+const chipCloseStyle: CSSProperties = { cursor: 'pointer', fontSize: 11, opacity: 0.8 }
 
 export default function BucketsPage() {
   const { bucketName } = useParams<{ bucketName?: string }>()
@@ -353,13 +361,20 @@ export default function BucketsPage() {
 
       {(tagFilters.length > 0 || providerFilter !== 'all' || search) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: -6, marginBottom: 16 }}>
+          <span style={{ color: C.dim, fontSize: 12 }}>Active filters:</span>
+          {providerFilter !== 'all' && (
+            <span style={chipStyle}>
+              provider: {providerFilter === 'none' ? 'none' : (providerOptions.find((p) => p.value === providerFilter)?.label || providerFilter)}
+              <CloseOutlined onClick={() => setProviderFilter('all')} style={chipCloseStyle} />
+            </span>
+          )}
           {tagFilters.map((f) => (
-            <Tag key={f.key} closable onClose={() => removeTagFilter(f.key)}
-              style={{ ...mono, fontSize: 12, background: C.accentSoftBg, border: `1px solid ${C.accentSoftBorder}`, color: C.accentHover, borderRadius: 8, padding: '3px 10px' }}>
+            <span key={f.key} style={chipStyle}>
               {f.key}{f.values.length ? `: ${f.values.join(', ')}` : ' (any)'}
-            </Tag>
+              <CloseOutlined onClick={() => removeTagFilter(f.key)} style={chipCloseStyle} />
+            </span>
           ))}
-          <Button size="small" type="text" onClick={resetFilters} style={{ color: C.dim }}>Reset all</Button>
+          <Button size="small" icon={<ReloadOutlined />} onClick={resetFilters}>Reset filters</Button>
         </div>
       )}
 
