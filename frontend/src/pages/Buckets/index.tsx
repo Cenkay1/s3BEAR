@@ -162,7 +162,7 @@ export default function BucketsPage() {
           <span style={{ color: C.dim, ...mono }}>/</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 22, height: 22, borderRadius: 5, background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <DatabaseOutlined style={{ color: '#0B0F17', fontSize: 11 }} />
+              <DatabaseOutlined style={{ color: '#0A0A0B', fontSize: 11 }} />
             </div>
             <span style={{ color: C.text, fontWeight: 600, fontSize: 15, ...mono }}>{bucketName}</span>
           </div>

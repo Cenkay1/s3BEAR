@@ -48,7 +48,7 @@ export default function LoginPage() {
   const enableAzure = config?.enable_azure_ad ?? false
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: '#0B0F17' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', background: '#0A0A0B' }}>
       {/* Left hero panel */}
       <div
         className="login-hero"
@@ -113,7 +113,7 @@ export default function LoginPage() {
           alignItems: 'center',
           justifyContent: 'center',
           padding: '40px',
-          background: '#0B0F17',
+          background: '#0A0A0B',
         }}
       >
         <div className="animate-fade-up" style={{ width: '100%', maxWidth: 400 }}>
@@ -128,15 +128,15 @@ export default function LoginPage() {
               block
               icon={<WindowsFilled />}
               onClick={handleAzureLogin}
-              style={{ height: 46, fontWeight: 600, background: '#1C1C20', borderColor: '#232C3A', color: '#ECECEE', marginBottom: enableLocal ? 4 : 0 }}
+              style={{ height: 46, fontWeight: 600, background: '#1C1C20', borderColor: '#2A2A30', color: '#ECECEE', marginBottom: enableLocal ? 4 : 0 }}
             >
               Sign in with Microsoft Entra
             </Button>
           )}
 
           {enableAzure && enableLocal && (
-            <Divider style={{ borderColor: '#232C3A', margin: '20px 0' }}>
-              <span style={{ color: '#64748B', fontSize: 12 }}>or continue with email</span>
+            <Divider style={{ borderColor: '#2A2A30', margin: '20px 0' }}>
+              <span style={{ color: '#6B6B73', fontSize: 12 }}>or continue with email</span>
             </Divider>
           )}
 
@@ -150,7 +150,7 @@ export default function LoginPage() {
                 <Input
                   autoComplete="email"
                   size="large"
-                  prefix={<MailOutlined style={{ color: '#64748B' }} />}
+                  prefix={<MailOutlined style={{ color: '#6B6B73' }} />}
                   placeholder="you@example.com"
                   style={{ height: 46 }}
                 />
@@ -168,7 +168,7 @@ export default function LoginPage() {
                 <Input.Password
                   autoComplete="current-password"
                   size="large"
-                  prefix={<LockOutlined style={{ color: '#64748B' }} />}
+                  prefix={<LockOutlined style={{ color: '#6B6B73' }} />}
                   placeholder="••••••••"
                   style={{ height: 46 }}
                 />
@@ -196,7 +196,7 @@ export default function LoginPage() {
             <div style={{ textAlign: 'center', color: '#EF4444' }}>No authentication method is enabled.</div>
           )}
 
-          <div style={{ textAlign: 'center', marginTop: 32, color: '#64748B', fontSize: 12 }}>
+          <div style={{ textAlign: 'center', marginTop: 32, color: '#6B6B73', fontSize: 12 }}>
             © {new Date().getFullYear()} S3Bear · Secure S3 Gateway
           </div>
         </div>

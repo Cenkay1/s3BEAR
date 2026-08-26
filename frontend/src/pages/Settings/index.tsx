@@ -24,7 +24,7 @@ function SectionTitle({ icon, title, subtitle }: { icon: React.ReactNode; title:
         {icon}
       </div>
       <div>
-        <div style={{ color: '#E6EDF3', fontWeight: 700, fontSize: 17 }}>{title}</div>
+        <div style={{ color: '#ECECEE', fontWeight: 700, fontSize: 17 }}>{title}</div>
         {subtitle && <div style={{ color: '#A0A0A8', fontSize: 13 }}>{subtitle}</div>}
       </div>
     </div>
@@ -126,7 +126,7 @@ function StorageProviders() {
     <>
       <Card
         loading={loading}
-        title={<span style={{ color: '#E6EDF3' }}>Storage Providers</span>}
+        title={<span style={{ color: '#ECECEE' }}>Storage Providers</span>}
         extra={<Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Provider</Button>}
       >
         {providers.length === 0 ? (
@@ -137,21 +137,21 @@ function StorageProviders() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {providers.map((p) => (
-              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#121821', border: '1px solid #2A2A30', borderRadius: 12, padding: '14px 16px' }}>
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#141416', border: '1px solid #2A2A30', borderRadius: 12, padding: '14px 16px' }}>
                 <div style={{ width: 44, height: 44, borderRadius: 11, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#34D399', fontSize: 20, flexShrink: 0 }}>
                   {PROVIDER_TYPE_ICON[p.provider_type] || <CloudServerOutlined />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ color: '#E6EDF3', fontWeight: 600, fontSize: 15 }}>{p.name}</span>
+                    <span style={{ color: '#ECECEE', fontWeight: 600, fontSize: 15 }}>{p.name}</span>
                     <Tag style={{ borderRadius: 6, margin: 0 }}>{PROVIDER_TYPE_LABEL[p.provider_type] || p.provider_type}</Tag>
                     {p.is_default && <Tag icon={<StarFilled />} color="gold" style={{ borderRadius: 6, margin: 0 }}>Default</Tag>}
-                    <Tag color="blue" style={{ borderRadius: 6, margin: 0 }}>{p.bucket_count} bucket{p.bucket_count === 1 ? '' : 's'}</Tag>
+                    <Tag style={{ borderRadius: 6, margin: 0, color: '#34D399', background: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.28)' }}>{p.bucket_count} bucket{p.bucket_count === 1 ? '' : 's'}</Tag>
                   </div>
                   <div style={{ ...mono, color: '#A0A0A8', fontSize: 12, marginTop: 6 }}>
                     {p.endpoint_url || `https://s3.${p.region}.amazonaws.com`}
                   </div>
-                  <div style={{ ...mono, color: '#64748B', fontSize: 12, marginTop: 2 }}>
+                  <div style={{ ...mono, color: '#6B6B73', fontSize: 12, marginTop: 2 }}>
                     {p.access_key_id ? p.access_key_id.slice(0, 6) + '••••••••' : '—'} · {p.region}
                   </div>
                 </div>
@@ -161,7 +161,9 @@ function StorageProviders() {
                       <Button type="text" icon={<StarOutlined />} onClick={() => handleSetDefault(p)} />
                     </Tooltip>
                   )}
-                  <Button type="primary" ghost size="small" icon={<EditOutlined />} onClick={() => openEdit(p)}>Edit</Button>
+                  <Tooltip title="Edit">
+                    <Button type="text" shape="circle" icon={<EditOutlined />} onClick={() => openEdit(p)} style={{ color: '#A0A0A8' }} />
+                  </Tooltip>
                   <Popconfirm
                     title={`Delete '${p.name}'?`}
                     description={p.bucket_count > 0 ? 'This provider has buckets attached and cannot be deleted.' : 'This cannot be undone.'}
@@ -210,15 +212,15 @@ function StorageProviders() {
 
         <Form form={form} layout="vertical" onFinish={handleSave} requiredMark={false}>
           <Form.Item name="name" label={fieldLabel('Display Name')} rules={[{ required: true, message: 'Required' }]}>
-            <Input prefix={<CloudServerOutlined style={{ color: '#64748B' }} />} placeholder="e.g. Production AWS, Local MinIO" style={{ height: 44 }} />
+            <Input prefix={<CloudServerOutlined style={{ color: '#6B6B73' }} />} placeholder="e.g. Production AWS, Local MinIO" style={{ height: 44 }} />
           </Form.Item>
           <Form.Item name="access_key_id" label={fieldLabel('Access Key ID')} rules={[{ required: true, message: 'Required' }]}>
-            <Input prefix={<ApiOutlined style={{ color: '#64748B' }} />} placeholder="AKIAIOSFODNN7EXAMPLE" style={{ height: 44, ...mono }} />
+            <Input prefix={<ApiOutlined style={{ color: '#6B6B73' }} />} placeholder="AKIAIOSFODNN7EXAMPLE" style={{ height: 44, ...mono }} />
           </Form.Item>
           <Form.Item name="secret_access_key" label={fieldLabel('Secret Access Key')}
             rules={editingSecret ? [] : [{ required: true, message: 'Required' }]}
             extra={editingSecret ? 'A secret is already stored. Leave empty to keep it.' : undefined}>
-            <Input.Password prefix={<LockOutlined style={{ color: '#64748B' }} />} placeholder={editingSecret ? '••••••••••••••••' : 'Enter secret key'} style={{ height: 44, ...mono }} />
+            <Input.Password prefix={<LockOutlined style={{ color: '#6B6B73' }} />} placeholder={editingSecret ? '••••••••••••••••' : 'Enter secret key'} style={{ height: 44, ...mono }} />
           </Form.Item>
           <Form.Item name="region" label={fieldLabel('Region')} initialValue="us-east-1">
             <Input placeholder="us-east-1" style={{ height: 44, ...mono }} />
@@ -233,7 +235,7 @@ function StorageProviders() {
           </Form.Item>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 22px' }}>
-            <SafetyOutlined style={{ color: '#64748B' }} />
+            <SafetyOutlined style={{ color: '#6B6B73' }} />
             <span style={{ color: '#A0A0A8', fontSize: 14, flex: 1 }}>Use SSL / HTTPS</span>
             <Switch checked={useSsl} onChange={setUseSsl} />
           </div>
@@ -254,12 +256,12 @@ function MethodRow(opts: {
   onToggle?: (v: boolean) => void; badge?: React.ReactNode; onConfigure?: () => void; loading?: boolean
 }) {
   return (
-    <div style={{ background: '#121821', border: '1px solid #2A2A30', borderRadius: 12, padding: '16px 18px' }}>
+    <div style={{ background: '#141416', border: '1px solid #2A2A30', borderRadius: 12, padding: '16px 18px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div style={{ width: 42, height: 42, borderRadius: 11, background: '#0B0F17', border: '1px solid #2A2A30', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A0A0A8', fontSize: 18, flexShrink: 0 }}>{opts.icon}</div>
+        <div style={{ width: 42, height: 42, borderRadius: 11, background: '#0A0A0B', border: '1px solid #2A2A30', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A0A0A8', fontSize: 18, flexShrink: 0 }}>{opts.icon}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ color: '#E6EDF3', fontWeight: 600 }}>{opts.name}</span>
+            <span style={{ color: '#ECECEE', fontWeight: 600 }}>{opts.name}</span>
             {opts.badge}
           </div>
           <div style={{ color: '#A0A0A8', fontSize: 13 }}>{opts.desc}</div>
@@ -378,7 +380,7 @@ function AuthMethods() {
             <Form.Item name="secret" label={fieldLabel(activeProvider.type === 'saml' ? 'Private Key (optional)' : 'Client Secret')} extra={activeProvider.has_secret ? 'Leave empty to keep existing.' : undefined}>
               <Input.Password placeholder={activeProvider.has_secret ? '••••••••' : 'Enter secret'} style={mono} />
             </Form.Item>
-            <div style={{ color: '#64748B', fontSize: 12, marginBottom: 16 }}>Note: config is stored; the login flow for this provider is not wired yet.</div>
+            <div style={{ color: '#6B6B73', fontSize: 12, marginBottom: 16 }}>Note: config is stored; the login flow for this provider is not wired yet.</div>
             <div style={{ display: 'flex', gap: 10 }}>
               <Button style={{ flex: 1 }} onClick={() => setDrawer(null)}>Cancel</Button>
               <Button style={{ flex: 1 }} type="primary" htmlType="submit">Save</Button>
@@ -406,7 +408,7 @@ export default function SettingsPage() {
           { label: 'Storage', value: 'storage', icon: <CloudServerOutlined /> },
           { label: 'Authentication', value: 'auth', icon: <SafetyOutlined /> },
         ]}
-        style={{ marginBottom: 24, padding: 4, background: '#121821', border: '1px solid #2A2A30', borderRadius: 12 }}
+        style={{ marginBottom: 24, padding: 4, background: '#141416', border: '1px solid #2A2A30', borderRadius: 12 }}
       />
 
       {tab === 'storage' ? (
