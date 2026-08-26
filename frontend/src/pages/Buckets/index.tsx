@@ -19,6 +19,14 @@ function formatBytes(bytes: number) {
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`
 }
 
+// Returns fill ratio 0..1 (or null when no quota) and the bar color for that ratio.
+function usageBar(sizeBytes: number, quotaBytes: number) {
+  if (!quotaBytes || quotaBytes <= 0) return { ratio: null as number | null, color: C.dim }
+  const ratio = Math.min(sizeBytes / quotaBytes, 1)
+  const color = ratio >= 0.9 ? C.danger : ratio >= 0.75 ? C.warning : C.accent
+  return { ratio, color }
+}
+
 const chipStyle: CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 8, ...mono, fontSize: 12,
   background: C.accentSoftBg, border: `1px solid ${C.accentSoftBorder}`, color: C.accentHover,
@@ -182,16 +190,20 @@ export default function BucketsPage() {
   const gridRenderItem = (bucket: BucketInfo, idx: number) => {
     const stats = bucketStats[bucket.name]
     const staggerClass = `stagger-${Math.min(idx + 1, 6)}`
+    const size = stats?.size ?? 0
+    const quota = stats?.quota_bytes ?? 0
+    const { ratio, color } = usageBar(size, quota)
     return (
       <List.Item>
         <div
           className={`animate-fade-up ${staggerClass}`}
           onClick={() => navigate(`/buckets/${bucket.name}`)}
           style={{
-            background: 'linear-gradient(180deg, #141B26 0%, #121821 100%)',
-            border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, cursor: 'pointer',
+            background: 'linear-gradient(180deg, #16161A 0%, #141416 100%)',
+            border: `1px solid ${C.border}`, borderRadius: 16, padding: 22, cursor: 'pointer',
             transition: 'border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease',
             position: 'relative', overflow: 'hidden',
+            minHeight: 232, display: 'flex', flexDirection: 'column',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = 'rgba(16,185,129,0.5)'
@@ -204,21 +216,19 @@ export default function BucketsPage() {
             e.currentTarget.style.transform = 'translateY(0)'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 14 }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 18 }}>
             <div style={{
-              width: 46, height: 46, borderRadius: 13,
+              width: 50, height: 50, borderRadius: 14,
               background: 'linear-gradient(135deg, #10B981, #059669)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               boxShadow: '0 4px 14px rgba(16,185,129,0.35)',
             }}>
-              <DatabaseOutlined style={{ color: '#fff', fontSize: 20 }} />
+              <DatabaseOutlined style={{ color: '#fff', fontSize: 22 }} />
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ color: C.text, fontWeight: 600, fontSize: 15, ...mono, wordBreak: 'break-all', lineHeight: 1.3 }}>
+              <div style={{ color: C.text, fontWeight: 600, fontSize: 16, ...mono, wordBreak: 'break-all', lineHeight: 1.3 }}>
                 {bucket.name}
-              </div>
-              <div style={{ color: C.dim, fontSize: 12, marginTop: 2 }}>
-                {bucket.creation_date ? `Created ${dayjs(bucket.creation_date).format('MMM D, YYYY')}` : 'S3 bucket'}
               </div>
             </div>
             {user?.is_admin ? (
@@ -230,22 +240,37 @@ export default function BucketsPage() {
                 <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={(e) => e.stopPropagation()} style={{ opacity: 0.5 }} />
               </Popconfirm>
             ) : (
-              <RightOutlined style={{ color: '#334155', fontSize: 13 }} />
+              <RightOutlined style={{ color: C.dim, fontSize: 13 }} />
             )}
           </div>
 
-          {bucket.tags && bucket.tags.length > 0 && (
-            <div style={{ marginBottom: 14 }}><TagBadges tags={bucket.tags} max={4} /></div>
-          )}
-
-          <div style={{ display: 'flex', gap: 12 }}>
-            <div style={{ flex: 1, background: C.bg, border: `1px solid ${C.raised}`, borderRadius: 10, padding: '10px 12px' }}>
-              <div style={{ color: C.dim, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 3 }}>Size</div>
-              <div style={{ color: C.text, fontSize: 14, ...mono }}>{stats ? formatBytes(stats.size) : '—'}</div>
+          {/* Usage */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+              <span style={{ color: C.muted, fontSize: 13, ...mono }}>Usage</span>
+              <span style={{ color: C.text, fontSize: 14, ...mono }}>
+                {formatBytes(size)}{quota > 0 ? ` / ${formatBytes(quota)}` : ''}
+              </span>
             </div>
-            <div style={{ flex: 1, background: C.bg, border: `1px solid ${C.raised}`, borderRadius: 10, padding: '10px 12px' }}>
+            <div style={{ height: 8, borderRadius: 999, background: C.raised, overflow: 'hidden' }}>
+              {ratio !== null && (
+                <div style={{ width: `${Math.max(ratio * 100, 2)}%`, height: '100%', background: color, borderRadius: 999, transition: 'width 300ms ease' }} />
+              )}
+            </div>
+          </div>
+
+          <div style={{ height: 1, background: C.raised, margin: '0 0 16px' }} />
+
+          {/* Objects + tags, pinned to the bottom for equal alignment */}
+          <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ flexShrink: 0 }}>
               <div style={{ color: C.dim, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 3 }}>Objects</div>
-              <div style={{ color: C.text, fontSize: 14, ...mono }}>{stats ? stats.object_count : '—'}</div>
+              <div style={{ color: C.text, fontSize: 16, ...mono }}>{stats ? stats.object_count.toLocaleString() : '—'}</div>
+            </div>
+            <div style={{ marginLeft: 'auto', minWidth: 0, display: 'flex', justifyContent: 'flex-end' }}>
+              {bucket.tags && bucket.tags.length > 0
+                ? <TagBadges tags={bucket.tags} max={2} overflow="popover" />
+                : null}
             </div>
           </div>
         </div>
