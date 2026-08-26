@@ -16,15 +16,15 @@
         --overlay:       #232C3A;
         --border:        #232C3A;
         --border-sub:    #1A2230;
-        --primary:       #3B82F6;
-        --primary-hover: #2563EB;
-        --primary-bright:#60A5FA;
-        --primary-glow:  rgba(59,130,246,0.12);
-        --primary-shadow:rgba(59,130,246,0.28);
+        --primary:       #10B981;
+        --primary-hover: #059669;
+        --primary-bright:#34D399;
+        --primary-glow:  rgba(16,185,129,0.12);
+        --primary-shadow:rgba(16,185,129,0.28);
         --orange:        #F59E0B;
         --green:         #22C55E;
         --aqua:          #38BDF8;
-        --blue:          #3B82F6;
+        --blue:          #10B981;
         --red:           #EF4444;
         --text:          #E6EDF3;
         --text-muted:    #94A3B8;
@@ -46,8 +46,8 @@
       /* Subtle grid background on body */
       body {
         background-image:
-          linear-gradient(rgba(59,130,246,0.02) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(59,130,246,0.02) 1px, transparent 1px);
+          linear-gradient(rgba(16,185,129,0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(16,185,129,0.02) 1px, transparent 1px);
         background-size: 48px 48px;
         background-color: var(--bg);
       }
@@ -69,7 +69,7 @@
       }
       @keyframes glowPulse {
         0%, 100% { box-shadow: 0 0 12px var(--primary-shadow); }
-        50%       { box-shadow: 0 0 24px var(--primary-shadow), 0 0 48px rgba(59,130,246,0.1); }
+        50%       { box-shadow: 0 0 24px var(--primary-shadow), 0 0 48px rgba(16,185,129,0.1); }
       }
 
       .animate-fade-up {
@@ -125,6 +125,24 @@
       .ant-btn-primary:hover {
         background: var(--primary-hover) !important;
         border-color: var(--primary-hover) !important;
+      }
+      .ant-btn-primary.login-submit {
+        background: #10B981 !important;
+        border-color: #10B981 !important;
+      }
+      .ant-btn-primary.login-submit:hover {
+        background: #059669 !important;
+        border-color: #059669 !important;
+      }
+      .ant-btn-primary.settings-configure {
+        background: transparent !important;
+        border-color: rgba(16,185,129,0.45) !important;
+        color: #34D399 !important;
+      }
+      .ant-btn-primary.settings-configure:hover {
+        background: rgba(16,185,129,0.1) !important;
+        border-color: #10B981 !important;
+        color: #6EE7B7 !important;
       }
       .ant-tabs-ink-bar { background: var(--primary) !important; }
       .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--primary-bright) !important; }
