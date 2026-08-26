@@ -78,9 +78,8 @@ export default function LoginPage() {
         />
 
         {/* logo */}
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src="/logo.png" alt="S3Bear" style={{ width: 40, height: 40, objectFit: 'contain' }} />
-          <span style={{ fontWeight: 700, fontSize: 18, color: '#ECECEE', letterSpacing: '-0.01em' }}>S3Bear</span>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <img src="/logo-wordmark-light.png" alt="S3BEAR" style={{ height: 44, width: 'auto', objectFit: 'contain', display: 'block' }} />
         </div>
 
         {/* hero copy */}

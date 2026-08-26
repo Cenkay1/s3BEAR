@@ -96,17 +96,17 @@ export default function AppLayout() {
         }}
       >
         {/* Logo */}
-        <div style={{ padding: '14px 12px 12px' }}>
+        <div style={{ padding: '20px 20px 16px' }}>
           <img
-            src="/logo.png"
-            alt="S3Bear"
-            style={{ width: '100%', maxHeight: 96, objectFit: 'contain', display: 'block' }}
+            src="/logo-wordmark-light.png"
+            alt="S3BEAR"
+            style={{ height: 42, width: 'auto', maxWidth: '100%', objectFit: 'contain', display: 'block' }}
           />
         </div>
 
         <div style={{ height: 1, background: '#1C1C20', margin: '4px 16px 12px' }} />
 
-        <div style={{ overflowY: 'auto', position: 'absolute', top: 128, bottom: 68, left: 0, right: 0 }}>
+        <div style={{ overflowY: 'auto', position: 'absolute', top: 96, bottom: 68, left: 0, right: 0 }}>
           {navGroups.map((group) => (
             <div key={group.label} style={{ marginBottom: 8 }}>
               <div style={{ padding: '10px 22px 6px', color: '#6B6B73', fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
