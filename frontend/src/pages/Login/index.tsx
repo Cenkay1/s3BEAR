@@ -62,7 +62,6 @@ export default function LoginPage() {
           justifyContent: 'space-between',
           background:
             'radial-gradient(1000px 600px at 30% 55%, rgba(16,185,129,0.14), transparent 60%), #0A0A0B',
-          borderRight: '1px solid #1C1C20',
         }}
       >
         {/* grid overlay */}
@@ -180,12 +179,17 @@ export default function LoginPage() {
               </div>
 
               <Button
+                className="login-submit"
                 htmlType="submit"
                 type="primary"
                 block
                 loading={localLoading}
                 size="large"
-                style={{ height: 46, fontWeight: 600, fontSize: 15 }}
+                style={{
+                  height: 46,
+                  fontWeight: 600,
+                  fontSize: 15,
+                }}
               >
                 Sign In <ArrowRightOutlined />
               </Button>
