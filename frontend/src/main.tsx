@@ -6,14 +6,14 @@ import { msalInstance } from './api/msal'
 import App from './App'
 import 'antd/dist/reset.css'
 
-// Slate / Blue palette
-const BG       = '#0B0F17'
-const SURFACE  = '#121821'
-const ELEVATED = '#1A2230'
-const BORDER   = '#232C3A'
-const PRIMARY  = '#3B82F6'
-const TEXT     = '#E6EDF3'
-const MUTED    = '#94A3B8'
+// Neutral / Emerald palette
+const BG       = '#0A0A0B'
+const SURFACE  = '#141416'
+const ELEVATED = '#1C1C20'
+const BORDER   = '#2A2A30'
+const PRIMARY  = '#10B981'
+const TEXT     = '#ECECEE'
+const MUTED    = '#A0A0A8'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -30,7 +30,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             colorText: TEXT,
             colorTextSecondary: MUTED,
             colorBorder: BORDER,
-            colorBorderSecondary: '#1A2230',
+            colorBorderSecondary: '#1C1C20',
             borderRadius: 10,
             fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
             fontSize: 14,
@@ -38,9 +38,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             colorWarning: '#F59E0B',
             colorError: '#EF4444',
             colorInfo: PRIMARY,
-            colorTextPlaceholder: '#64748B',
+            colorTextPlaceholder: '#6B6B73',
             colorLink: PRIMARY,
-            colorLinkHover: '#60A5FA',
+            colorLinkHover: '#34D399',
           },
           components: {
             Layout: {
@@ -51,9 +51,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             Menu: {
               darkItemBg: 'transparent',
               darkSubMenuItemBg: 'transparent',
-              darkItemSelectedBg: 'rgba(59,130,246,0.12)',
-              darkItemSelectedColor: '#60A5FA',
-              darkItemHoverBg: 'rgba(59,130,246,0.07)',
+              darkItemSelectedBg: 'rgba(16,185,129,0.14)',
+              darkItemSelectedColor: '#34D399',
+              darkItemHoverBg: 'rgba(16,185,129,0.08)',
               darkItemHoverColor: TEXT,
               itemBorderRadius: 8,
             },
@@ -64,8 +64,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             Table: {
               colorBgContainer: 'transparent',
               headerBg: 'transparent',
-              rowHoverBg: 'rgba(59,130,246,0.06)',
-              borderColor: '#1A2230',
+              rowHoverBg: 'rgba(16,185,129,0.07)',
+              borderColor: '#1C1C20',
             },
             Modal: {
               contentBg: SURFACE,
