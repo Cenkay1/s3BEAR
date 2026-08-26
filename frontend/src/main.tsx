@@ -19,6 +19,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <MsalProvider instance={msalInstance}>
       <ConfigProvider
+        componentSize="large"
         theme={{
           algorithm: theme.darkAlgorithm,
           token: {
@@ -33,7 +34,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             colorBorderSecondary: '#1C1C20',
             borderRadius: 10,
             fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-            fontSize: 14,
+            fontSize: 15,
             colorSuccess: '#22C55E',
             colorWarning: '#F59E0B',
             colorError: '#EF4444',
@@ -56,6 +57,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               darkItemHoverBg: 'rgba(16,185,129,0.08)',
               darkItemHoverColor: TEXT,
               itemBorderRadius: 8,
+              itemHeight: 44,
+              fontSize: 15,
             },
             Card: {
               colorBgContainer: SURFACE,
@@ -66,6 +69,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               headerBg: 'transparent',
               rowHoverBg: 'rgba(16,185,129,0.07)',
               borderColor: '#1C1C20',
+              cellPaddingBlock: 14,
             },
             Modal: {
               contentBg: SURFACE,
@@ -93,7 +97,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               defaultColor: PRIMARY,
             },
             Statistic: {
-              contentFontSize: 20,
+              contentFontSize: 22,
             },
           },
         }}

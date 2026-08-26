@@ -26,7 +26,7 @@ export default function FilterBar({ search, onSearch, placeholder = 'Search…',
           onChange={(e) => onSearch(e.target.value)}
           prefix={<SearchOutlined style={{ color: C.dim }} />}
           placeholder={placeholder}
-          style={{ height: 38, maxWidth: 320, flex: '1 1 220px' }}
+          style={{ height: 44, maxWidth: 320, flex: '1 1 220px' }}
         />
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto', flexWrap: 'wrap' }}>
