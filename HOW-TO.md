@@ -231,7 +231,7 @@ docker compose -f docker-compose.dev.yml exec backend alembic upgrade head
 
 ```bash
 helm install s3bear oci://registry-1.docker.io/bearcomp/s3bear \
-  --version 1.0.1 \
+  --version 1.0.3 \
   --namespace s3bear --create-namespace \
   --set secrets.secretKey="$(openssl rand -hex 32)" \
   --set secrets.databaseUrl="postgresql+asyncpg://user:pass@postgres:5432/s3bear" \
