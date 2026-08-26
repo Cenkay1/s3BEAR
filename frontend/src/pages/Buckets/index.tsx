@@ -194,8 +194,8 @@ export default function BucketsPage() {
             position: 'relative', overflow: 'hidden',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(59,130,246,0.5)'
-            e.currentTarget.style.boxShadow = '0 0 0 1px rgba(59,130,246,0.15), 0 12px 32px rgba(0,0,0,0.45)'
+            e.currentTarget.style.borderColor = 'rgba(16,185,129,0.5)'
+            e.currentTarget.style.boxShadow = '0 0 0 1px rgba(16,185,129,0.15), 0 12px 32px rgba(0,0,0,0.45)'
             e.currentTarget.style.transform = 'translateY(-3px)'
           }}
           onMouseLeave={(e) => {
@@ -207,9 +207,9 @@ export default function BucketsPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 14 }}>
             <div style={{
               width: 46, height: 46, borderRadius: 13,
-              background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
+              background: 'linear-gradient(135deg, #10B981, #059669)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              boxShadow: '0 4px 14px rgba(59,130,246,0.35)',
+              boxShadow: '0 4px 14px rgba(16,185,129,0.35)',
             }}>
               <DatabaseOutlined style={{ color: '#fff', fontSize: 20 }} />
             </div>

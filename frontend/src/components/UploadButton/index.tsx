@@ -107,7 +107,7 @@ export default function UploadButton({ bucket, prefix, onSuccess, visible, onClo
           <Progress
             percent={multipartProgress.percentage}
             size="small"
-            strokeColor="#3B82F6"
+            strokeColor="#10B981"
             trailColor="#232C3A"
           />
           <Space style={{ marginTop: 8 }}>

@@ -119,7 +119,7 @@ export default function BucketBrowser({ bucket, canWrite, canDelete }: BucketBro
         return (
           <Space size={8}>
             {isImg
-              ? <FileImageOutlined style={{ color: '#3B82F6', fontSize: 13 }} />
+              ? <FileImageOutlined style={{ color: '#10B981', fontSize: 13 }} />
               : <FileOutlined style={{ color: '#64748B', fontSize: 13 }} />
             }
             <span style={{ ...monoStyle, color: '#CBD5E1' }}>{name}</span>

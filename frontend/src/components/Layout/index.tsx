@@ -86,8 +86,8 @@ export default function AppLayout() {
       <Sider
         width={SIDER_W}
         style={{
-          background: '#121821',
-          borderRight: '1px solid #1A2230',
+          background: '#141416',
+          borderRight: '1px solid #1C1C20',
           position: 'fixed',
           left: 0,
           top: 0,
@@ -104,12 +104,12 @@ export default function AppLayout() {
           />
         </div>
 
-        <div style={{ height: 1, background: '#1A2230', margin: '4px 16px 12px' }} />
+        <div style={{ height: 1, background: '#1C1C20', margin: '4px 16px 12px' }} />
 
         <div style={{ overflowY: 'auto', position: 'absolute', top: 128, bottom: 68, left: 0, right: 0 }}>
           {navGroups.map((group) => (
             <div key={group.label} style={{ marginBottom: 8 }}>
-              <div style={{ padding: '10px 22px 6px', color: '#64748B', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              <div style={{ padding: '10px 22px 6px', color: '#6B6B73', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 {group.label}
               </div>
               <Menu
@@ -130,25 +130,25 @@ export default function AppLayout() {
             bottom: 0,
             left: 0,
             right: 0,
-            borderTop: '1px solid #1A2230',
+            borderTop: '1px solid #1C1C20',
             padding: '12px 10px',
-            background: '#121821',
+            background: '#141416',
           }}
         >
           <Dropdown menu={userMenu} placement="topRight" trigger={['click']}>
             <div
               style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '8px 10px', borderRadius: 8, transition: 'background 150ms ease' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.08)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(16,185,129,0.08)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              <Avatar size={32} style={{ background: '#3B82F6', color: '#fff', fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+              <Avatar size={32} style={{ background: '#10B981', color: '#fff', fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
                 {initial}
               </Avatar>
               <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
-                <div style={{ color: '#E6EDF3', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ color: '#ECECEE', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {user?.display_name || user?.email || 'user'}
                 </div>
-                <div style={{ color: user?.is_admin ? '#60A5FA' : '#64748B', fontSize: 11 }}>
+                <div style={{ color: user?.is_admin ? '#34D399' : '#6B6B73', fontSize: 11 }}>
                   {user?.is_admin ? 'Administrator' : 'Member'}
                 </div>
               </div>

@@ -20,18 +20,18 @@ const mono = { fontFamily: "'Fira Code', monospace" }
 function SectionTitle({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-      <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60A5FA', fontSize: 18 }}>
+      <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#34D399', fontSize: 18 }}>
         {icon}
       </div>
       <div>
         <div style={{ color: '#E6EDF3', fontWeight: 700, fontSize: 17 }}>{title}</div>
-        {subtitle && <div style={{ color: '#94A3B8', fontSize: 13 }}>{subtitle}</div>}
+        {subtitle && <div style={{ color: '#A0A0A8', fontSize: 13 }}>{subtitle}</div>}
       </div>
     </div>
   )
 }
 
-const fieldLabel = (t: string) => <span style={{ color: '#94A3B8', fontSize: 13 }}>{t}</span>
+const fieldLabel = (t: string) => <span style={{ color: '#A0A0A8', fontSize: 13 }}>{t}</span>
 
 /* ── Storage providers manager (multi-backend) ───────────────────────────── */
 const PROVIDER_TYPE_LABEL: Record<string, string> = {
@@ -132,13 +132,13 @@ function StorageProviders() {
         {providers.length === 0 ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={<span style={{ color: '#94A3B8' }}>No providers yet. Add one to route buckets to specific S3 backends.<br />Until then, the environment S3 config is used.</span>}
+            description={<span style={{ color: '#A0A0A8' }}>No providers yet. Add one to route buckets to specific S3 backends.<br />Until then, the environment S3 config is used.</span>}
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {providers.map((p) => (
-              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#121821', border: '1px solid #232C3A', borderRadius: 12, padding: '14px 16px' }}>
-                <div style={{ width: 44, height: 44, borderRadius: 11, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60A5FA', fontSize: 20, flexShrink: 0 }}>
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#121821', border: '1px solid #2A2A30', borderRadius: 12, padding: '14px 16px' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 11, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#34D399', fontSize: 20, flexShrink: 0 }}>
                   {PROVIDER_TYPE_ICON[p.provider_type] || <CloudServerOutlined />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -148,7 +148,7 @@ function StorageProviders() {
                     {p.is_default && <Tag icon={<StarFilled />} color="gold" style={{ borderRadius: 6, margin: 0 }}>Default</Tag>}
                     <Tag color="blue" style={{ borderRadius: 6, margin: 0 }}>{p.bucket_count} bucket{p.bucket_count === 1 ? '' : 's'}</Tag>
                   </div>
-                  <div style={{ ...mono, color: '#94A3B8', fontSize: 12, marginTop: 6 }}>
+                  <div style={{ ...mono, color: '#A0A0A8', fontSize: 12, marginTop: 6 }}>
                     {p.endpoint_url || `https://s3.${p.region}.amazonaws.com`}
                   </div>
                   <div style={{ ...mono, color: '#64748B', fontSize: 12, marginTop: 2 }}>
@@ -184,9 +184,9 @@ function StorageProviders() {
         width={460}
         destroyOnClose
       >
-        <div style={{ color: '#94A3B8', fontSize: 13, marginBottom: 20 }}>Register an S3-compatible backend. Buckets are bound to a provider when created.</div>
+        <div style={{ color: '#A0A0A8', fontSize: 13, marginBottom: 20 }}>Register an S3-compatible backend. Buckets are bound to a provider when created.</div>
 
-        <div style={{ color: '#94A3B8', fontSize: 12, fontWeight: 600, letterSpacing: '0.06em', marginBottom: 8 }}>PROVIDER TYPE</div>
+        <div style={{ color: '#A0A0A8', fontSize: 12, fontWeight: 600, letterSpacing: '0.06em', marginBottom: 8 }}>PROVIDER TYPE</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 22 }}>
           {[{ value: 'aws', label: 'AWS S3', icon: <CloudOutlined /> },
             { value: 'minio', label: 'MinIO', icon: <HddOutlined /> },
@@ -197,9 +197,9 @@ function StorageProviders() {
             return (
               <div key={p.value} onClick={() => setPtype(p.value)} style={{
                 cursor: 'pointer', textAlign: 'center', padding: '12px 6px', borderRadius: 10,
-                background: active ? 'rgba(59,130,246,0.12)' : '#1A2230',
-                border: `1px solid ${active ? '#3B82F6' : '#232C3A'}`,
-                color: active ? '#60A5FA' : '#94A3B8', transition: 'all 150ms ease',
+                background: active ? 'rgba(16,185,129,0.12)' : '#1C1C20',
+                border: `1px solid ${active ? '#10B981' : '#2A2A30'}`,
+                color: active ? '#34D399' : '#A0A0A8', transition: 'all 150ms ease',
               }}>
                 <div style={{ fontSize: 18, marginBottom: 4 }}>{p.icon}</div>
                 <div style={{ fontSize: 12, fontWeight: 500 }}>{p.label}</div>
@@ -234,7 +234,7 @@ function StorageProviders() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 22px' }}>
             <SafetyOutlined style={{ color: '#64748B' }} />
-            <span style={{ color: '#94A3B8', fontSize: 14, flex: 1 }}>Use SSL / HTTPS</span>
+            <span style={{ color: '#A0A0A8', fontSize: 14, flex: 1 }}>Use SSL / HTTPS</span>
             <Switch checked={useSsl} onChange={setUseSsl} />
           </div>
 
@@ -254,15 +254,15 @@ function MethodRow(opts: {
   onToggle?: (v: boolean) => void; badge?: React.ReactNode; onConfigure?: () => void; loading?: boolean
 }) {
   return (
-    <div style={{ background: '#121821', border: '1px solid #232C3A', borderRadius: 12, padding: '16px 18px' }}>
+    <div style={{ background: '#121821', border: '1px solid #2A2A30', borderRadius: 12, padding: '16px 18px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div style={{ width: 42, height: 42, borderRadius: 11, background: '#0B0F17', border: '1px solid #232C3A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: 18, flexShrink: 0 }}>{opts.icon}</div>
+        <div style={{ width: 42, height: 42, borderRadius: 11, background: '#0B0F17', border: '1px solid #2A2A30', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A0A0A8', fontSize: 18, flexShrink: 0 }}>{opts.icon}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ color: '#E6EDF3', fontWeight: 600 }}>{opts.name}</span>
             {opts.badge}
           </div>
-          <div style={{ color: '#94A3B8', fontSize: 13 }}>{opts.desc}</div>
+          <div style={{ color: '#A0A0A8', fontSize: 13 }}>{opts.desc}</div>
         </div>
         {opts.onConfigure && <Button type="primary" ghost size="small" icon={<EditOutlined />} onClick={opts.onConfigure}>Configure</Button>}
         {opts.onToggle && <Switch checked={opts.enabled} onChange={opts.onToggle} loading={opts.loading} />}
@@ -406,7 +406,7 @@ export default function SettingsPage() {
           { label: 'Storage', value: 'storage', icon: <CloudServerOutlined /> },
           { label: 'Authentication', value: 'auth', icon: <SafetyOutlined /> },
         ]}
-        style={{ marginBottom: 24, padding: 4, background: '#121821', border: '1px solid #232C3A', borderRadius: 12 }}
+        style={{ marginBottom: 24, padding: 4, background: '#121821', border: '1px solid #2A2A30', borderRadius: 12 }}
       />
 
       {tab === 'storage' ? (

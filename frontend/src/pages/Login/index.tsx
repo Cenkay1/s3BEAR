@@ -61,8 +61,8 @@ export default function LoginPage() {
           flexDirection: 'column',
           justifyContent: 'space-between',
           background:
-            'radial-gradient(1000px 600px at 30% 55%, rgba(59,130,246,0.14), transparent 60%), #0A0E14',
-          borderRight: '1px solid #1A2230',
+            'radial-gradient(1000px 600px at 30% 55%, rgba(16,185,129,0.14), transparent 60%), #0A0A0B',
+          borderRight: '1px solid #1C1C20',
         }}
       >
         {/* grid overlay */}
@@ -71,7 +71,7 @@ export default function LoginPage() {
             position: 'absolute',
             inset: 0,
             backgroundImage:
-              'linear-gradient(rgba(59,130,246,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.05) 1px, transparent 1px)',
+              'linear-gradient(rgba(16,185,129,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(16,185,129,0.05) 1px, transparent 1px)',
             backgroundSize: '46px 46px',
             maskImage: 'radial-gradient(900px 600px at 30% 50%, #000, transparent 75%)',
             pointerEvents: 'none',
@@ -81,23 +81,23 @@ export default function LoginPage() {
         {/* logo */}
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12 }}>
           <img src="/logo.png" alt="S3Bear" style={{ width: 40, height: 40, objectFit: 'contain' }} />
-          <span style={{ fontWeight: 700, fontSize: 18, color: '#E6EDF3', letterSpacing: '-0.01em' }}>S3Bear</span>
+          <span style={{ fontWeight: 700, fontSize: 18, color: '#ECECEE', letterSpacing: '-0.01em' }}>S3Bear</span>
         </div>
 
         {/* hero copy */}
         <div style={{ position: 'relative', maxWidth: 520 }}>
-          <h1 style={{ fontSize: 48, lineHeight: 1.08, fontWeight: 800, margin: 0, color: '#E6EDF3', letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontSize: 48, lineHeight: 1.08, fontWeight: 800, margin: 0, color: '#ECECEE', letterSpacing: '-0.02em' }}>
             Infrastructure<br />Management,<br />
-            <span style={{ color: '#3B82F6' }}>Simplified.</span>
+            <span style={{ color: '#10B981' }}>Simplified.</span>
           </h1>
-          <p style={{ marginTop: 24, fontSize: 16, lineHeight: 1.6, color: '#94A3B8', maxWidth: 460 }}>
+          <p style={{ marginTop: 24, fontSize: 16, lineHeight: 1.6, color: '#A0A0A8', maxWidth: 460 }}>
             Securely manage your S3 buckets, serve images to the web and to LLMs, and
             configure policies from a centralized, high-performance console.
           </p>
         </div>
 
         {/* status */}
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, fontFamily: "'Fira Code', monospace", fontSize: 13, color: '#94A3B8' }}>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, fontFamily: "'Fira Code', monospace", fontSize: 13, color: '#A0A0A8' }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 10px #22C55E' }} />
           System Status: All Systems Operational
         </div>
@@ -118,8 +118,8 @@ export default function LoginPage() {
       >
         <div className="animate-fade-up" style={{ width: '100%', maxWidth: 400 }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <h2 style={{ fontSize: 26, fontWeight: 700, color: '#E6EDF3', margin: 0 }}>Sign In</h2>
-            <p style={{ color: '#94A3B8', marginTop: 8, fontSize: 14 }}>Access your S3 infrastructure</p>
+            <h2 style={{ fontSize: 26, fontWeight: 700, color: '#ECECEE', margin: 0 }}>Sign In</h2>
+            <p style={{ color: '#A0A0A8', marginTop: 8, fontSize: 14 }}>Access your S3 infrastructure</p>
           </div>
 
           {enableAzure && (
@@ -128,7 +128,7 @@ export default function LoginPage() {
               block
               icon={<WindowsFilled />}
               onClick={handleAzureLogin}
-              style={{ height: 46, fontWeight: 600, background: '#1A2230', borderColor: '#232C3A', color: '#E6EDF3', marginBottom: enableLocal ? 4 : 0 }}
+              style={{ height: 46, fontWeight: 600, background: '#1C1C20', borderColor: '#232C3A', color: '#ECECEE', marginBottom: enableLocal ? 4 : 0 }}
             >
               Sign in with Microsoft Entra
             </Button>
@@ -144,7 +144,7 @@ export default function LoginPage() {
             <Form layout="vertical" onFinish={handleLocalLogin} requiredMark={false}>
               <Form.Item
                 name="email"
-                label={<span style={{ color: '#94A3B8', fontSize: 13, fontWeight: 500 }}>Email</span>}
+                label={<span style={{ color: '#A0A0A8', fontSize: 13, fontWeight: 500 }}>Email</span>}
                 rules={[{ required: true, type: 'email', message: 'Enter a valid email' }]}
               >
                 <Input
@@ -160,7 +160,7 @@ export default function LoginPage() {
                 name="password"
                 label={
                   <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                    <span style={{ color: '#94A3B8', fontSize: 13, fontWeight: 500 }}>Password</span>
+                    <span style={{ color: '#A0A0A8', fontSize: 13, fontWeight: 500 }}>Password</span>
                   </div>
                 }
                 rules={[{ required: true, message: 'Enter your password' }]}
@@ -176,7 +176,7 @@ export default function LoginPage() {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
                 <Switch size="small" />
-                <span style={{ color: '#94A3B8', fontSize: 13 }}>Remember device</span>
+                <span style={{ color: '#A0A0A8', fontSize: 13 }}>Remember device</span>
               </div>
 
               <Button
