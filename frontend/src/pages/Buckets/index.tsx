@@ -313,15 +313,24 @@ export default function BucketsPage() {
   ]
 
   const ProviderHeading = ({ name, count }: { name: string; count: number }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 14px' }}>
-      <div style={{ width: 30, height: 30, borderRadius: 8, background: C.accentSoftBg, border: `1px solid ${C.accentSoftBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.accentHover }}>
-        <CloudServerOutlined style={{ fontSize: 15 }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 16px' }}>
+      <div style={{ width: 34, height: 34, borderRadius: 9, background: C.accentSoftBg, border: `1px solid ${C.accentSoftBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.accentHover }}>
+        <CloudServerOutlined style={{ fontSize: 17 }} />
       </div>
-      <span style={{ color: C.text, fontWeight: 700, fontSize: 15 }}>{name}</span>
-      <span style={{ color: C.dim, fontSize: 12 }}>{count} bucket{count === 1 ? '' : 's'}</span>
+      <span style={{ color: C.text, fontWeight: 700, fontSize: 17 }}>{name}</span>
+      <span style={{ ...mono, color: C.muted, fontSize: 11, letterSpacing: '0.06em', background: C.raised, border: `1px solid ${C.border}`, borderRadius: 6, padding: '3px 9px' }}>
+        {count} BUCKET{count === 1 ? '' : 'S'}
+      </span>
       <div style={{ flex: 1, height: 1, background: C.raised }} />
     </div>
   )
+
+  const openCreateForProvider = (providerId?: string) => {
+    form.resetFields()
+    setCreateTags([])
+    if (providerId) form.setFieldValue('provider_id', providerId)
+    setCreateOpen(true)
+  }
 
   return (
     <div className="animate-fade-in">
@@ -425,8 +434,27 @@ export default function BucketsPage() {
               <ProviderHeading name={g.name} count={g.items.length} />
               <List
                 grid={{ gutter: 16, xs: 1, sm: 2, md: 2, lg: 3, xl: 3, xxl: 4 }}
-                dataSource={g.items}
-                renderItem={gridRenderItem}
+                dataSource={user?.is_admin ? [...g.items, { __createTile: true } as unknown as BucketInfo] : g.items}
+                renderItem={(item, idx) =>
+                  (item as any).__createTile ? (
+                    <List.Item key="__create">
+                      <div
+                        onClick={() => openCreateForProvider(g.key === 'none' ? undefined : g.key)}
+                        style={{
+                          minHeight: 232, borderRadius: 16, border: `1.5px dashed ${C.border}`,
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                          gap: 12, cursor: 'pointer', color: C.muted,
+                          transition: 'border-color 180ms ease, color 180ms ease',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.accentHover; e.currentTarget.style.color = C.accentHover }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted }}
+                      >
+                        <PlusOutlined style={{ fontSize: 26 }} />
+                        <span style={{ fontSize: 15, fontWeight: 500 }}>Create New Bucket</span>
+                      </div>
+                    </List.Item>
+                  ) : gridRenderItem(item, idx)
+                }
               />
             </div>
           ))}
