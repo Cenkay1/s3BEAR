@@ -10,17 +10,17 @@ expiring links, and audit logging in front of any S3-compatible backend.
 
 <br/>
 
-[![Get Started](https://img.shields.io/badge/Get_Started-60s_with_Docker-2496ed?style=for-the-badge&logo=docker&logoColor=white)](#quick-start-60-seconds)
+[![Get Started](https://img.shields.io/badge/Get_Started-Quick_Start-2496ed?style=for-the-badge&logo=rocket&logoColor=white)](https://s3.pagabear.com/docs/quick-start/)
 [![Watch Demo](https://img.shields.io/badge/Watch_Demo-▶-c72e49?style=for-the-badge)](#demo)
-[![Deploy to Kubernetes](https://img.shields.io/badge/Deploy-Kubernetes-326ce5?style=for-the-badge&logo=kubernetes&logoColor=white)](HOW-TO.md#kubernetes-deployment-helm)
-[![Read the Docs](https://img.shields.io/badge/Read_the-Docs-009688?style=for-the-badge&logo=readthedocs&logoColor=white)](HOW-TO.md)
+[![Images](https://img.shields.io/badge/Images-Docker_%26_Helm-2496ed?style=for-the-badge&logo=docker&logoColor=white)](https://hub.docker.com/u/bearcomp)
+[![Read the Docs](https://img.shields.io/badge/Read_the-Docs-009688?style=for-the-badge&logo=readthedocs&logoColor=white)](https://s3.pagabear.com)
 
 <br/>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
 [![Backend](https://img.shields.io/badge/backend-FastAPI-009688.svg)](HOW-TO.md)
 [![Frontend](https://img.shields.io/badge/frontend-React_18-61dafb.svg)](HOW-TO.md)
-[![Deploy](https://img.shields.io/badge/deploy-Docker%20%7C%20Helm-2496ed.svg)](HOW-TO.md#kubernetes-deployment-helm)
+[![Images](https://img.shields.io/badge/images-Docker%20%7C%20Helm-2496ed.svg)](https://hub.docker.com/u/bearcomp)
 [![Storage](https://img.shields.io/badge/storage-S3%20%2F%20MinIO-c72e49.svg)](HOW-TO.md)
 
 </div>
@@ -113,8 +113,8 @@ More screens (sign-in, storage & auth settings, webhooks) are in **[HOW-TO.md](H
 
 ## Documentation
 
+- **[Documentation](https://s3.pagabear.com)** — guides, configuration, deployment, and reference documentation
 - **[HOW-TO.md](HOW-TO.md)** — architecture, API surface, configuration, and a feature-by-feature technical guide with real-world use cases
-- **OpenAPI** — `http://<backend>/docs` (Swagger UI) and `http://<backend>/redoc`
 
 ## License
 
