@@ -1,8 +1,6 @@
 <div align="center">
 
-<img src="frontend/public/logo.png" alt="s3BEAR" width="120" />
-
-# s3BEAR
+<img src="frontend/public/logo-wordmark-light.png" alt="s3BEAR" width="120" />
 
 ### Secure S3 Gateway for AI Workloads
 
